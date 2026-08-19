@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#
+# =============================================================================
+# Martian/Cell Ranger SLURM job template - img_scfrp / iMG pools
+# =============================================================================
+#
+# Used via `cellranger multi --jobmode=<path to this file>` (or
+# `cellranger testrun --jobmode=...` for validation). Martian substitutes the
+# __MRO_*__ placeholders below and submits one sbatch job per pipeline stage
+# chunk to this account/partition. Do not remove any of the placeholders or
+# Martian may not run properly.
+#
+# Based on the stock martian-lang/martian slurm.template.example, with
+# --account/--partition and a per-stage walltime cap added for this project.
+#
+#SBATCH -J __MRO_JOB_NAME__
+#SBATCH --account=b1169
+#SBATCH --partition=b1169
+#SBATCH --export=ALL
+#SBATCH --nodes=1
+#SBATCH --ntasks=1 --cpus-per-task=__MRO_THREADS__
+#SBATCH --signal=2
+#SBATCH --no-requeue
+#SBATCH --time=24:00:00
+#SBATCH --mem=__MRO_MEM_GB__G
+#SBATCH -o __MRO_STDOUT__
+#SBATCH -e __MRO_STDERR__
+
+__MRO_CMD__
