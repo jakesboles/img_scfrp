@@ -1,0 +1,27 @@
+[gene-expression]
+reference,/projects/p31535/boles/cellranger_references/refdata-gex-GRCh38-2024-A
+probe-set,/projects/p31535/boles/cellranger_references/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv
+create-bam,false
+
+[libraries]
+fastq_id,fastqs,feature_types
+iMG2,/projects/b1169/boles/img_scfrp/fastq/Gate38_11.22.2024,Gene Expression
+iMG2,/projects/b1169/boles/img_scfrp/fastq/FixedRNA_Jake,Gene Expression
+
+[samples]
+sample_id,probe_barcode_ids
+KOLF_untreated_2,BC001
+KOLF_asyn_2,BC002
+KOLF_myelin_2,BC003
+GALC_untreated_2,BC004
+GALC_asyn_2,BC005
+GALC_myelin_2,BC006
+GBA_untreated_2,BC007
+GBA_asyn_2,BC008
+GBA_myelin_2,BC009
+GRN_untreated_2,BC010
+GRN_asyn_2,BC011
+GRN_myelin_2,BC012
+LRRK2_untreated_2,BC013
+LRRK2_asyn_2,BC014|BC015
+LRRK2_myelin_2,BC016
