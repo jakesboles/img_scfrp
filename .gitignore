@@ -49,7 +49,10 @@ po/*~
 rsconnect/
 
 fastq/*
-plots/*
-data/*
+deseq2/*
+wgcna/*
+preprocessing/*
 tab_data/*
 logs/*
+cellranger/*
+cellbender/*
