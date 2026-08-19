@@ -1,5 +1,0 @@
-@include "rna/_cr_lib_stages.mro"
-
-call WRITE_GENE_INDEX(
-    reference_path = "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_ref",
-)
