@@ -1,0 +1,225 @@
+Martian Runtime - v4.0.14
+2026-08-19 17:33:37 [build  ] Built with Go version go1.25.1
+2026-08-19 17:33:37 [cmdline] mrp __cluster_mode_test.mro cluster_mode_test --jobmode=../cellranger_scripts/slurm.template --jobinterval=100 --localcores=4 --localmem=14 --maxjobs=24 --disable-ui
+2026-08-19 17:33:37 [pid    ] 1218176
+2026-08-19 17:33:37 [environ] CONDA_SHLVL=1
+2026-08-19 17:33:37 [environ] LS_COLORS=rs=0:di=38;5;33:ln=38;5;51:mh=00:pi=40;38;5;11:so=38;5;13:do=38;5;5:bd=48;5;232;38;5;11:cd=48;5;232;38;5;3:or=48;5;232;38;5;9:mi=01;05;37;41:su=48;5;196;38;5;15:sg=48;5;11;38;5;16:ca=48;5;196;38;5;226:tw=48;5;10;38;5;16:ow=48;5;10;38;5;21:st=48;5;21;38;5;15:ex=38;5;40:*.tar=38;5;9:*.tgz=38;5;9:*.arc=38;5;9:*.arj=38;5;9:*.taz=38;5;9:*.lha=38;5;9:*.lz4=38;5;9:*.lzh=38;5;9:*.lzma=38;5;9:*.tlz=38;5;9:*.txz=38;5;9:*.tzo=38;5;9:*.t7z=38;5;9:*.zip=38;5;9:*.z=38;5;9:*.dz=38;5;9:*.gz=38;5;9:*.lrz=38;5;9:*.lz=38;5;9:*.lzo=38;5;9:*.xz=38;5;9:*.zst=38;5;9:*.tzst=38;5;9:*.bz2=38;5;9:*.bz=38;5;9:*.tbz=38;5;9:*.tbz2=38;5;9:*.tz=38;5;9:*.deb=38;5;9:*.rpm=38;5;9:*.jar=38;5;9:*.war=38;5;9:*.ear=38;5;9:*.sar=38;5;9:*.rar=38;5;9:*.alz=38;5;9:*.ace=38;5;9:*.zoo=38;5;9:*.cpio=38;5;9:*.7z=38;5;9:*.rz=38;5;9:*.cab=38;5;9:*.wim=38;5;9:*.swm=38;5;9:*.dwm=38;5;9:*.esd=38;5;9:*.jpg=38;5;13:*.jpeg=38;5;13:*.mjpg=38;5;13:*.mjpeg=38;5;13:*.gif=38;5;13:*.bmp=38;5;13:*.pbm=38;5;13:*.pgm=38;5;13:*.ppm=38;5;13:*.tga=38;5;13:*.xbm=38;5;13:*.xpm=38;5;13:*.tif=38;5;13:*.tiff=38;5;13:*.png=38;5;13:*.svg=38;5;13:*.svgz=38;5;13:*.mng=38;5;13:*.pcx=38;5;13:*.mov=38;5;13:*.mpg=38;5;13:*.mpeg=38;5;13:*.m2v=38;5;13:*.mkv=38;5;13:*.webm=38;5;13:*.ogm=38;5;13:*.mp4=38;5;13:*.m4v=38;5;13:*.mp4v=38;5;13:*.vob=38;5;13:*.qt=38;5;13:*.nuv=38;5;13:*.wmv=38;5;13:*.asf=38;5;13:*.rm=38;5;13:*.rmvb=38;5;13:*.flc=38;5;13:*.avi=38;5;13:*.fli=38;5;13:*.flv=38;5;13:*.gl=38;5;13:*.dl=38;5;13:*.xcf=38;5;13:*.xwd=38;5;13:*.yuv=38;5;13:*.cgm=38;5;13:*.emf=38;5;13:*.ogv=38;5;13:*.ogx=38;5;13:*.aac=38;5;45:*.au=38;5;45:*.flac=38;5;45:*.m4a=38;5;45:*.mid=38;5;45:*.midi=38;5;45:*.mka=38;5;45:*.mp3=38;5;45:*.mpc=38;5;45:*.ogg=38;5;45:*.ra=38;5;45:*.wav=38;5;45:*.oga=38;5;45:*.opus=38;5;45:*.spx=38;5;45:*.xspf=38;5;45:
+2026-08-19 17:33:37 [environ] CONDA_EXE=/home/egn9175/miniconda3/bin/conda
+2026-08-19 17:33:37 [environ] SLURM_NODEID=0
+2026-08-19 17:33:37 [environ] SLURM_TASK_PID=1218156
+2026-08-19 17:33:37 [environ] SSH_CONNECTION=129.105.9.98 51395 165.124.130.51 22
+2026-08-19 17:33:37 [environ] SLURM_PRIO_PROCESS=0
+2026-08-19 17:33:37 [environ] LANG=C
+2026-08-19 17:33:37 [environ] SLURM_SUBMIT_DIR=/gpfs/projects/b1169/boles/img_scfrp
+2026-08-19 17:33:37 [environ] HOSTNAME=qnode0119
+2026-08-19 17:33:37 [environ] JAVA_LD_LIBRARY_PATH=/home/egn9175/miniconda3/lib/server
+2026-08-19 17:33:37 [environ] ENVIRONMENT=BATCH
+2026-08-19 17:33:37 [environ] CONDA_PREFIX=/home/egn9175/miniconda3
+2026-08-19 17:33:37 [environ] JAVA_HOME=/home/egn9175/miniconda3
+2026-08-19 17:33:37 [environ] SLURM_PROCID=0
+2026-08-19 17:33:37 [environ] SLURM_JOB_GID=8299
+2026-08-19 17:33:37 [environ] SLURM_JOB_END_TIME=1787186017
+2026-08-19 17:33:37 [environ] SLURM_TASKS_PER_NODE=4
+2026-08-19 17:33:37 [environ] XDG_SESSION_ID=315030
+2026-08-19 17:33:37 [environ] SLURM_NNODES=1
+2026-08-19 17:33:37 [environ] USER=egn9175
+2026-08-19 17:33:37 [environ] SLURM_JOB_START_TIME=1787178817
+2026-08-19 17:33:37 [environ] SLURM_NTASKS_PER_NODE=4
+2026-08-19 17:33:37 [environ] PWD=/projects/b1169/boles/img_scfrp/cellranger
+2026-08-19 17:33:37 [environ] SLURM_JOB_NODELIST=qnode0119
+2026-08-19 17:33:37 [environ] HOME=/home/egn9175
+2026-08-19 17:33:37 [environ] SLURM_CLUSTER_NAME=quest
+2026-08-19 17:33:37 [environ] CONDA_PYTHON_EXE=/home/egn9175/miniconda3/bin/python
+2026-08-19 17:33:37 [environ] SLURM_NODELIST=qnode0119
+2026-08-19 17:33:37 [environ] SSH_CLIENT=129.105.9.98 51395 22
+2026-08-19 17:33:37 [environ] SLURM_NTASKS=4
+2026-08-19 17:33:37 [environ] CONDA_BACKUP_JAVA_HOME=:-
+2026-08-19 17:33:37 [environ] SLURM_JOB_CPUS_PER_NODE=4
+2026-08-19 17:33:37 [environ] BASH_ENV=/hpc/software/spack_v20d1/spack/opt/spack/linux-rhel7-x86_64/gcc-4.8.5/lmod-8.7.24-ptfr7cudrme2v7y2nfktkkftnrgkezra/lmod/lmod/init/bash
+2026-08-19 17:33:37 [environ] XDG_DATA_DIRS=/home/egn9175/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+2026-08-19 17:33:37 [environ] SLURM_TOPOLOGY_ADDR=qnode0119
+2026-08-19 17:33:37 [environ] SLURM_JOB_NAME=cluster_mode_test
+2026-08-19 17:33:37 [environ] TMPDIR=/tmp
+2026-08-19 17:33:37 [environ] SLURM_JOBID=9930672
+2026-08-19 17:33:37 [environ] SLURM_CONF=/etc/slurm/slurm.conf
+2026-08-19 17:33:37 [environ] SLURM_JOB_QOS=buyin
+2026-08-19 17:33:37 [environ] SLURM_TOPOLOGY_ADDR_PATTERN=node
+2026-08-19 17:33:37 [environ] CONDA_PROMPT_MODIFIER=(base) 
+2026-08-19 17:33:37 [environ] SSH_TTY=/dev/pts/50
+2026-08-19 17:33:37 [environ] SLURM_CPUS_ON_NODE=4
+2026-08-19 17:33:37 [environ] SLURM_JOB_NUM_NODES=1
+2026-08-19 17:33:37 [environ] SLURM_MEM_PER_NODE=16384
+2026-08-19 17:33:37 [environ] CONDA_BACKUP_JAVA_LD_LIBRARY_PATH=:-
+2026-08-19 17:33:37 [environ] SHELL=/bin/bash
+2026-08-19 17:33:37 [environ] TERM=xterm-256color
+2026-08-19 17:33:37 [environ] SLURM_JOB_UID=7507
+2026-08-19 17:33:37 [environ] SLURM_JOB_PARTITION=genomics
+2026-08-19 17:33:37 [environ] SLURM_JOB_USER=egn9175
+2026-08-19 17:33:37 [environ] SLURM_NPROCS=4
+2026-08-19 17:33:37 [environ] SHLVL=2
+2026-08-19 17:33:37 [environ] SLURM_SUBMIT_HOST=quser41
+2026-08-19 17:33:37 [environ] SLURM_JOB_ACCOUNT=b1042
+2026-08-19 17:33:37 [environ] SLURM_GTIDS=0
+2026-08-19 17:33:37 [environ] LOGNAME=egn9175
+2026-08-19 17:33:37 [environ] PATH=/gpfs/projects/p31535/boles/cellranger-10.0.0/lib/bin:/gpfs/projects/p31535/boles/cellranger-10.0.0/external/martian/bin:/gpfs/projects/p31535/boles/cellranger-10.0.0/external/anaconda/bin:/gpfs/projects/p31535/boles/cellranger-10.0.0/bin/tenkit:/gpfs/projects/p31535/boles/cellranger-10.0.0/bin:/software/tree/2.0.4:/home/egn9175/miniconda3/bin:/home/egn9175/miniconda3/condabin:/gpfs/software/2025/pseudo-system-utils:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/usr/lpp/mmfs/bin:/hpc/usertools:/home/egn9175/.local/bin:/home/egn9175/bin
+2026-08-19 17:33:37 [environ] SLURM_JOB_ID=9930672
+2026-08-19 17:33:37 [environ] CONDA_DEFAULT_ENV=base
+2026-08-19 17:33:37 [environ] SLURM_OOM_KILL_STEP=0
+2026-08-19 17:33:37 [environ] SLURM_LOCALID=0
+2026-08-19 17:33:37 [environ] BASH_FUNC_which%%=() {  ( alias;
+ eval ${which_declare} ) | /usr/bin/which --tty-only --read-alias --read-functions --show-tilde --show-dot $@
+}
+2026-08-19 17:33:37 [environ] BASH_FUNC_module%%=() {  if [ -z "${LMOD_SH_DBG_ON+x}" ]; then
+ case "$-" in 
+ *v*x*)
+ __lmod_sh_dbg='vx'
+ ;;
+ *v*)
+ __lmod_sh_dbg='v'
+ ;;
+ *x*)
+ __lmod_sh_dbg='x'
+ ;;
+ esac;
+ fi;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ set +$__lmod_sh_dbg;
+ echo "Shell debugging temporarily silenced: export LMOD_SH_DBG_ON=1 for Lmod's output" 1>&2;
+ fi;
+ eval "$($LMOD_CMD shell "$@")" && eval "$(${LMOD_SETTARG_CMD:-:} -s sh)";
+ __lmod_my_status=$?;
+ if [ -n "${__lmod_sh_dbg:-}" ]; then
+ echo "Shell debugging restarted" 1>&2;
+ set -$__lmod_sh_dbg;
+ fi;
+ unset __lmod_sh_dbg;
+ return $__lmod_my_status
+}
+2026-08-19 17:33:37 [environ] BASH_FUNC_ml%%=() {  eval "$($LMOD_DIR/ml_cmd "$@")"
+}
+2026-08-19 17:33:37 [environ] _=/projects/p31535/boles/cellranger-10.0.0/cellranger
+2026-08-19 17:33:37 [environ] HDF5_USE_FILE_LOCKING=FALSE
+2026-08-19 17:33:37 [environ] LC_CTYPE=en_US.UTF-8
+2026-08-19 17:33:37 [environ] MKL_CBWR=COMPATIBLE
+2026-08-19 17:33:37 [environ] PYTHONNOUSERSITE=1
+2026-08-19 17:33:37 [environ] RUST_BACKTRACE=1
+2026-08-19 17:33:37 [environ] PYTHONPATH=/gpfs/projects/p31535/boles/cellranger-10.0.0/lib/python:/gpfs/projects/p31535/boles/cellranger-10.0.0/external/martian/adapters/python
+2026-08-19 17:33:37 [environ] TENX_PRODUCT=cellranger
+2026-08-19 17:33:37 [environ] TENX_VERSION=10.0.0
+2026-08-19 17:33:37 [environ] TENX_COPYRIGHT=Copyright 2023 10x Genomics, Inc. All rights reserved.
+2026-08-19 17:33:37 [options] --localcores=4
+2026-08-19 17:33:37 [options] --localmem=14
+2026-08-19 17:33:37 [environ] MROPATH=/gpfs/projects/p31535/boles/cellranger-10.0.0/mro
+2026-08-19 17:33:37 [version] MRO Version=10.0.0
+2026-08-19 17:33:37 [options] --jobmode=../cellranger_scripts/slurm.template
+2026-08-19 17:33:37 [options] --maxjobs=24
+2026-08-19 17:33:37 [options] --jobinterval=100
+2026-08-19 17:33:37 [options] --vdrmode=rolling
+2026-08-19 17:33:37 [options] --profile=disable
+2026-08-19 17:33:37 [options] --disable-ui
+2026-08-19 17:33:37 [options] --stackvars=false
+2026-08-19 17:33:37 [options] --zip=false
+2026-08-19 17:33:37 [options] --limit-loadavg=false
+2026-08-19 17:33:37 [options] --noexit=false
+2026-08-19 17:33:37 [options] --nopreflight=false
+2026-08-19 17:33:37 [jobmngr] Job config = /gpfs/projects/p31535/boles/cellranger-10.0.0/external/martian/jobmanagers/config.json
+2026-08-19 17:33:37 [jobmngr] Using 4 cores, per --localcores option.
+2026-08-19 17:33:37 [jobmngr] Using 14 GB, per --localmem option.
+2026-08-19 17:33:37 [jobmngr] Job submit comand = sbatch --parsable
+2026-08-19 17:33:37 [jobmngr] Job submit resources option = 
+2026-08-19 17:33:37 [jobmngr] Job template = ../cellranger_scripts/slurm.template
+2026-08-19 17:33:38 [sysinfo] linux amd64
+2026-08-19 17:33:38 [sysinfo] Linux kernel release version: 4.18.0-553.136.1.el8_10.x86_64
+2026-08-19 17:33:38 [sysinfo] glibc version: 2.28
+2026-08-19 17:33:38 [filesys] Pipestance path /projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test
+2026-08-19 17:33:38 [filesys] Pipestance filesystem type gpfs
+2026-08-19 17:33:38 [filesys] 43 TB and 1,700,933,902 inodes available.
+2026-08-19 17:33:38 [filesys] Pipestance filesystem gpfs mount options: rw,relatime,rw
+2026-08-19 17:33:38 [filesys] Pipestance directory permissions drwxrwxr-x owned by uid 7507 gid 8299
+2026-08-19 17:33:38 [filesys] Bin path /gpfs/projects/p31535/boles/cellranger-10.0.0/external/martian/bin
+2026-08-19 17:33:38 [filesys] Bin filesystem type gpfs
+2026-08-19 17:33:38 [filesys] Bin filesystem gpfs mount options: rw,relatime,rw
+2026-08-19 17:33:38 [filesys] Executable file permissions -rwxrwxr-x owned by uid 7507 gid 111131535
+2026-08-19 17:33:38 [user   ] User egn9175 uid 7507 / gid 8299
+2026-08-19 17:33:38 [webserv] UI disabled.
+Running preflight checks (please wait)...
+2026-08-19 17:33:38 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT
+2026-08-19 17:33:38 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT.fork0.chnk0.main
+2026-08-19 17:33:38 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT_LOCAL
+2026-08-19 17:33:38 [runtime] (run:local)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT_LOCAL.fork0.chnk0.main
+2026-08-19 17:33:38 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELL_ANNOTATION_PREFLIGHT
+2026-08-19 17:33:38 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELL_ANNOTATION_PREFLIGHT.fork0.chnk0.main
+2026-08-19 17:33:59 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT_LOCAL
+2026-08-19 17:38:54 [runtime] (update)          ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT.fork0 chunks_running
+2026-08-19 17:38:54 [runtime] (update)          ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELL_ANNOTATION_PREFLIGHT.fork0 chunks_running
+2026-08-19 17:39:06 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELL_ANNOTATION_PREFLIGHT
+2026-08-19 17:39:12 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELLRANGER_PREFLIGHT
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_CHEMISTRY_DETECTOR.CHECK_SINGLE_BEAM_MODE
+2026-08-19 17:39:12 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_CHEMISTRY_DETECTOR.CHECK_SINGLE_BEAM_MODE
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.SANITIZE_MAP_CALLS
+2026-08-19 17:39:12 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.SANITIZE_MAP_CALLS
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.COPY_VDJ_REFERENCE
+2026-08-19 17:39:12 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.COPY_VDJ_REFERENCE
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.WRITE_GENE_INDEX
+2026-08-19 17:39:12 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.WRITE_GENE_INDEX.fork0.chnk0.main
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SETUP_REFERENCE_INFO
+2026-08-19 17:39:12 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.SETUP_REFERENCE_INFO.fork0.chnk0.main
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.COPY_CHEMISTRY_SPEC
+2026-08-19 17:39:12 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.COPY_CHEMISTRY_SPEC.fork0.chnk0.main
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MAKE_FULL_CONFIG._MAKE_VDJ_CONFIG
+2026-08-19 17:39:12 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MAKE_FULL_CONFIG._MAKE_VDJ_CONFIG.fork0.chnk0.main
+2026-08-19 17:39:12 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.SPLIT_VDJ_INPUTS
+2026-08-19 17:39:12 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.SPLIT_VDJ_INPUTS
+2026-08-19 17:44:01 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.WRITE_GENE_INDEX
+2026-08-19 17:44:01 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.SETUP_REFERENCE_INFO
+2026-08-19 17:44:01 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.COPY_CHEMISTRY_SPEC
+2026-08-19 17:44:01 [runtime] (chunks_complete) ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MAKE_FULL_CONFIG._MAKE_VDJ_CONFIG
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SETUP_VDJ_DEMUX
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SETUP_VDJ_DEMUX
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.FULL_COUNT_INPUTS.WRITE_GENE_INDEX
+2026-08-19 17:44:01 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.FULL_COUNT_INPUTS.WRITE_GENE_INDEX.fork0.chnk0.main
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.MULTI_SETUP_CHUNKS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.MULTI_SETUP_CHUNKS
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_CHEMISTRY_DETECTOR.DETECT_COUNT_CHEMISTRY
+2026-08-19 17:44:01 [runtime] (run:slurm)       ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_CHEMISTRY_DETECTOR.DETECT_COUNT_CHEMISTRY.fork0.chnk0.main
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SETUP_VDJ_DEMUX
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SETUP_VDJ_DEMUX
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SETUP_VDJ_DEMUX
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SETUP_VDJ_DEMUX
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.MULTI_SETUP_CHUNKS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.MULTI_SETUP_CHUNKS
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.MULTI_SETUP_CHUNKS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.MULTI_SETUP_CHUNKS
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MAKE_SHARD
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MAKE_SHARD
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MAKE_SHARD
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MAKE_SHARD
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MAKE_SHARD
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MAKE_SHARD
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.BARCODE_CORRECTION
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.BARCODE_CORRECTION
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.BARCODE_CORRECTION
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.BARCODE_CORRECTION
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.BARCODE_CORRECTION
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.BARCODE_CORRECTION
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.RUST_BRIDGE
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.RUST_BRIDGE
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.RUST_BRIDGE
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.RUST_BRIDGE
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.ASSEMBLE_VDJ
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.ASSEMBLE_VDJ
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MERGE_METRICS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MERGE_METRICS
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MERGE_METRICS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MERGE_METRICS
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.RUST_BRIDGE
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.RUST_BRIDGE
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.ASSEMBLE_VDJ
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.ASSEMBLE_VDJ
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MERGE_METRICS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.MERGE_METRICS
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GD_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER
+2026-08-19 17:44:01 [runtime] (ready)           ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.ASSEMBLE_VDJ
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER.ASSEMBLE_VDJ
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_B_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER
+2026-08-19 17:44:01 [runtime] (disabled)        ID.cluster_mode_test.SC_RNA_COUNTER_CS.SC_MULTI_CORE.MULTI_GEM_WELL_PROCESSOR.VDJ_T_GEM_WELL_PROCESSOR.SC_VDJ_CONTIG_ASSEMBLER

@@ -1,0 +1,6 @@
+{
+    "chemistry_defs": {},
+    "detected_probe_barcode_pairing": "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/SC_MULTI_CORE/MULTI_CHEMISTRY_DETECTOR/DETECT_COUNT_CHEMISTRY/fork0/chnk0-u96808631b1/files/detected_probe_barcode_pairing.json",
+    "is_antibody_only": null,
+    "probe_barcode_overlap": "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/SC_MULTI_CORE/MULTI_CHEMISTRY_DETECTOR/DETECT_COUNT_CHEMISTRY/fork0/chnk0-u96808631b1/files/probe_barcode_overlap.csv"
+}

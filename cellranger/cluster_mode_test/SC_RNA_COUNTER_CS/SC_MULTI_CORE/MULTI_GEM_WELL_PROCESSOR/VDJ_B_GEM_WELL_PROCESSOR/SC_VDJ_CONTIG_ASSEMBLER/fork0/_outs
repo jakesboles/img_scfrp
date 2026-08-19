@@ -1,0 +1,19 @@
+{
+    "asm_contig_annotations": null,
+    "barcode_brief": null,
+    "barcode_full": null,
+    "barcodes_in_chunks": null,
+    "contig_bam": null,
+    "contig_bam_bai": null,
+    "corrected_barcode_counts": null,
+    "gem_groups": null,
+    "n50_n50_rpu": null,
+    "processed_read_pairs": null,
+    "read_shards": null,
+    "sequencing_metrics": null,
+    "summary": null,
+    "summary_tsv": null,
+    "total_read_pairs": null,
+    "umi_summary_tsv": null,
+    "unmapped_sample_fastq": null
+}

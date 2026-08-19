@@ -1,0 +1,189 @@
+{
+    "name": "ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELL_ANNOTATION_PREFLIGHT.fork0.chnk0",
+    "type": "../cellranger_scripts/slurm.template",
+    "cwd": "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/CELL_ANNOTATION_PREFLIGHT/fork0/chnk0-u9680862f42/files",
+    "python": {
+        "binpath": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/anaconda/bin/python3",
+        "version": "3.12.11 | packaged by conda-forge | (main, Jun  4 2025, 14:45:31) [GCC 13.3.0]"
+    },
+    "rusage": {
+        "self": {
+            "ru_maxrss": 6404,
+            "ru_ixrss": 0,
+            "ru_idrss": 0,
+            "ru_minflt": 996,
+            "ru_majflt": 0,
+            "ru_nswap": 0,
+            "ru_utime": 0.004505,
+            "ru_stime": 0.006644,
+            "ru_inblock": 0,
+            "ru_oublock": 0,
+            "ru_msgsnd": 0,
+            "ru_msgrcv": 0,
+            "ru_nsignals": 0,
+            "ru_nivcsw": 7
+        },
+        "children": {
+            "ru_maxrss": 117052,
+            "ru_ixrss": 0,
+            "ru_idrss": 0,
+            "ru_minflt": 32378,
+            "ru_majflt": 62,
+            "ru_nswap": 0,
+            "ru_utime": 1.071746,
+            "ru_stime": 0.369878,
+            "ru_inblock": 1640,
+            "ru_oublock": 0,
+            "ru_msgsnd": 0,
+            "ru_msgrcv": 0,
+            "ru_nsignals": 0,
+            "ru_nivcsw": 47
+        }
+    },
+    "used_bytes": {
+        "rss": 111861760,
+        "shared": 39997440,
+        "vmem": 2307190784,
+        "text": 6443008,
+        "stack": 156205056,
+        "proc_count": 1
+    },
+    "io": {
+        "total": {
+            "read": {
+                "sysc": 2128,
+                "bytes": 0
+            },
+            "write": {
+                "sysc": 21,
+                "bytes": 0
+            }
+        },
+        "max": {
+            "read": {
+                "sysc": 293.1076469586784,
+                "bytes": 0
+            },
+            "write": {
+                "sysc": 2.5995229942893077,
+                "bytes": 0
+            }
+        },
+        "dev": {
+            "read": {
+                "sysc": 9.086231337415972,
+                "bytes": 0
+            },
+            "write": {
+                "sysc": 0.6673209703751237,
+                "bytes": 0
+            }
+        }
+    },
+    "wallclock": {
+        "start": "2026-08-19T17:38:53.627291653-05:00",
+        "end": "2026-08-19T17:39:05.54486791-05:00",
+        "duration_seconds": 11.917576257
+    },
+    "profile_mode": "disable",
+    "stackvars_flag": "disable",
+    "monitor_flag": "disable",
+    "invocation": {
+        "call": "SC_RNA_COUNTER_CS",
+        "args": {
+            "aligner": null,
+            "cell_annotation_model": null,
+            "check_library_compatibility": true,
+            "chemistry": "SC3Pv3",
+            "disable_ab_aggregate_detection": false,
+            "emptydrops_minimum_umis": null,
+            "feature_reference": null,
+            "filter_probes": null,
+            "force_cells": null,
+            "global_minimum_umis": null,
+            "include_introns": false,
+            "max_mito_percent": null,
+            "min_crispr_umi_threshold": 3,
+            "no_bam": false,
+            "no_secondary_analysis": false,
+            "r1_length": null,
+            "r2_length": null,
+            "recovered_cells": null,
+            "reference_path": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_ref",
+            "sample_def": [
+                {
+                    "fastq_id": null,
+                    "fastq_mode": "ILMN_BCL2FASTQ",
+                    "gem_group": null,
+                    "lanes": null,
+                    "library_type": "Gene Expression",
+                    "read_path": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_fastq",
+                    "sample_indices": [
+                        "any"
+                    ],
+                    "sample_names": [
+                        "tinygex"
+                    ],
+                    "subsample_rate": null
+                }
+            ],
+            "sample_desc": "",
+            "sample_id": "cluster_mode_test",
+            "skip_cell_annotation": true,
+            "target_set": null,
+            "target_set_name": null,
+            "targeting_method": null,
+            "tenx_cloud_token_path": null,
+            "trim_polya_min_score": null,
+            "trim_tso_min_score": null
+        },
+        "mro_file": "rna/sc_rna_counter_cs.mro"
+    },
+    "version": {
+        "martian": "v4.0.14",
+        "pipelines": "10.0.0"
+    },
+    "sge": {
+        "SLURM_CLUSTER_NAME": "quest",
+        "SLURM_CONF": "/etc/slurm/slurm.conf",
+        "SLURM_CPUS_ON_NODE": "1",
+        "SLURM_CPUS_PER_TASK": "1",
+        "SLURM_GTIDS": "0",
+        "SLURM_JOBID": "9930792",
+        "SLURM_JOB_ACCOUNT": "b1042",
+        "SLURM_JOB_CPUS_PER_NODE": "1",
+        "SLURM_JOB_END_TIME": "1787265533",
+        "SLURM_JOB_GID": "8299",
+        "SLURM_JOB_ID": "9930792",
+        "SLURM_JOB_NAME": "ID.cluster_mode_test.SC_RNA_COUNTER_CS.CELL_ANNOTATION_PREFLIGHT.fork0.chnk0.main",
+        "SLURM_JOB_NODELIST": "qnode0153",
+        "SLURM_JOB_NUM_NODES": "1",
+        "SLURM_JOB_PARTITION": "genomics",
+        "SLURM_JOB_QOS": "buyin",
+        "SLURM_JOB_START_TIME": "1787179133",
+        "SLURM_JOB_UID": "7507",
+        "SLURM_JOB_USER": "egn9175",
+        "SLURM_LOCALID": "0",
+        "SLURM_MEM_PER_NODE": "8192",
+        "SLURM_NNODES": "1",
+        "SLURM_NODEID": "0",
+        "SLURM_NODELIST": "qnode0153",
+        "SLURM_NPROCS": "1",
+        "SLURM_NTASKS": "1",
+        "SLURM_NTASKS_PER_NODE": "4",
+        "SLURM_PRIO_PROCESS": "0",
+        "SLURM_PROCID": "0",
+        "SLURM_SUBMIT_DIR": "/gpfs/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/CELL_ANNOTATION_PREFLIGHT/fork0/chnk0-u9680862f42/files",
+        "SLURM_SUBMIT_HOST": "qnode0119",
+        "SLURM_TASKS_PER_NODE": "1",
+        "SLURM_TASK_PID": "219617",
+        "SLURM_TOPOLOGY_ADDR": "qnode0153",
+        "SLURM_TOPOLOGY_ADDR_PATTERN": "node",
+        "SLURM_TRES_PER_TASK": "cpu=1"
+    },
+    "host": "qnode0153",
+    "pid": 219618,
+    "threads": 1,
+    "memGB": 8,
+    "vmemGB": 11
+}

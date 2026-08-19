@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+#
+# =============================================================================
+# Martian/Cell Ranger SLURM job template - img_scfrp / iMG pools
+# =============================================================================
+#
+# Used via `cellranger multi --jobmode=<path to this file>` (or
+# `cellranger testrun --jobmode=...` for validation). Martian substitutes the
+# __MRO_*__ placeholders below and submits one sbatch job per pipeline stage
+# chunk to this account/partition. Do not remove any of the placeholders or
+# Martian may not run properly.
+#
+# Based on the stock martian-lang/martian slurm.template.example, with
+# --account/--partition and a per-stage walltime cap added for this project.
+#
+#SBATCH -J ID.cluster_mode_test.SC_RNA_COUNTER_CS.WRITE_GENE_INDEX.fork0.chnk0.main
+#SBATCH --account=b1042
+#SBATCH --partition=genomics
+#SBATCH --export=ALL
+#SBATCH --nodes=1
+#SBATCH --ntasks=1 --cpus-per-task=1
+#SBATCH --signal=2
+#SBATCH --no-requeue
+#SBATCH --time=24:00:00
+#SBATCH --mem=6G
+#SBATCH -o "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/WRITE_GENE_INDEX/fork0/chnk0-u9680863090/_stdout"
+#SBATCH -e "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/WRITE_GENE_INDEX/fork0/chnk0-u9680863090/_stderr"
+
+GOMAXPROCS="1" \
+  MKL_NUM_THREADS="1" \
+  MRO_UUID="487077dd-7cd9-44df-aa0e-47f8d9144050" \
+  NUMEXPR_MAX_THREADS="1" \
+  NUMEXPR_NUM_THREADS="1" \
+  OMP_NUM_THREADS="1" \
+  OMP_THREAD_LIMIT="1" \
+  POLARS_MAX_THREADS="1" \
+  ROOT_MAX_THREADS="1" \
+  TF_NUM_THREADS="1" \
+  TMPDIR="/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/WRITE_GENE_INDEX/fork0/chnk0-u9680863090/tmp" \
+  "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/martian/bin/mrjob" \
+  "/gpfs/projects/p31535/boles/cellranger-10.0.0/lib/bin/cr_lib" \
+  "martian" \
+  "write_gene_index" \
+  "main" \
+  "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/WRITE_GENE_INDEX/fork0/chnk0-u9680863090" \
+  "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/SC_RNA_COUNTER_CS/WRITE_GENE_INDEX/fork0/chnk0-u9680863090/files" \
+  "/projects/b1169/boles/img_scfrp/cellranger/cluster_mode_test/journal/SC_RNA_COUNTER_CS.WRITE_GENE_INDEX.fork0.chnk0.u9680863090"

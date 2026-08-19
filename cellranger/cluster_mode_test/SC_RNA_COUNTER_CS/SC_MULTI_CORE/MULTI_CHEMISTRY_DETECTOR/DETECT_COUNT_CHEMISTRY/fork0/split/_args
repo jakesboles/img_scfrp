@@ -1,0 +1,52 @@
+{
+    "allowed_chems": [
+        "auto",
+        "custom",
+        "threeprime",
+        "fiveprime",
+        "SC3Pv1",
+        "SC3Pv2",
+        "SC3Pv3-polyA",
+        "SC3Pv3-CS1",
+        "SC3Pv3LT",
+        "SC3Pv3HT-polyA",
+        "SC3Pv3HT-CS1",
+        "SC3Pv4-polyA",
+        "SC3Pv4-CS1",
+        "SC5P-PE",
+        "SC5P-PE-v3",
+        "SC5P-R2",
+        "SC5P-R2-v3",
+        "SC5PHT",
+        "SC-FB",
+        "ARC-v1"
+    ],
+    "chemistry_specs": {
+        "Gene Expression": "SC3Pv3-polyA"
+    },
+    "custom_chemistry_defs": {},
+    "feature_config": null,
+    "feature_reference": null,
+    "is_pd": false,
+    "multi_config": null,
+    "r1_length": null,
+    "r2_length": null,
+    "reference_path": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_ref",
+    "sample_def": [
+        {
+            "fastq_id": null,
+            "fastq_mode": "ILMN_BCL2FASTQ",
+            "gem_group": null,
+            "lanes": null,
+            "library_type": "Gene Expression",
+            "read_path": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_fastq",
+            "sample_indices": [
+                "any"
+            ],
+            "sample_names": [
+                "tinygex"
+            ],
+            "subsample_rate": null
+        }
+    ]
+}

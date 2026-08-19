@@ -1,0 +1,21 @@
+{
+    "chemistry_spec": "SC3Pv3",
+    "custom_chemistry_def": null,
+    "sample_defs": [
+        {
+            "fastq_id": null,
+            "fastq_mode": "ILMN_BCL2FASTQ",
+            "gem_group": null,
+            "lanes": null,
+            "library_type": "Gene Expression",
+            "read_path": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_fastq",
+            "sample_indices": [
+                "any"
+            ],
+            "sample_names": [
+                "tinygex"
+            ],
+            "subsample_rate": null
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+@include "rna/_cr_lib_stages.mro"
+
+call SETUP_REFERENCE_INFO(
+    reference_path = "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_ref",
+    target_set     = null,
+)

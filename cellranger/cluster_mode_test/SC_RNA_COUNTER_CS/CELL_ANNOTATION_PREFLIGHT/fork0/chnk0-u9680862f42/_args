@@ -1,0 +1,14 @@
+{
+    "__mem_gb": 8,
+    "__threads": 1,
+    "__vmem_gb": 11,
+    "cas_track_name": null,
+    "cell_annotation_model": null,
+    "cr_annotate_filtered_matrix": null,
+    "cr_annotate_sample_cloupe": null,
+    "is_cr_annotate": false,
+    "is_multi": false,
+    "reference_path": "/gpfs/projects/p31535/boles/cellranger-10.0.0/external/cellranger_tiny_ref",
+    "skip_cell_annotation": true,
+    "tenx_cloud_token_path": null
+}
