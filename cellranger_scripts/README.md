@@ -6,9 +6,20 @@ mode](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/c
 via `--jobmode=slurm.template`. Instead of doing all the work inside one
 SLURM allocation, the SLURM job you submit only hosts the lightweight Martian
 (`mrp`) controller process; `mrp` in turn submits one `sbatch` job per
-pipeline stage chunk to the `b1169` account/partition using
+pipeline stage chunk to the `b1042`/`genomics` account/partition using
 `slurm.template`, so a single pool's run is spread across many concurrent
 cluster jobs instead of being capped by one node's core count.
+
+Originally set to `b1169`/`b1169` (the allocation holding this repo's
+storage), but that only ran ~3 sub-jobs concurrently during
+`test_cluster_mode.sh` — almost certainly a per-account/QOS concurrent-job
+cap on `b1169`, not a `slurm.template` problem. Switched to `b1042`/`genomics`
+(Northwestern's shared Genomics Compute Cluster queue, also used in the
+original JSB127 example) since it should allow far more concurrency. If you
+change this back or to something else, edit the `--account`/`--partition`
+lines in `slurm.template` *and* in each `#SBATCH` header below (`iMG1..4_cellranger.sh`,
+`test_cluster_mode.sh`) — they don't have to match each other, but keeping
+them the same avoids confusion about which queue is being used for what.
 
 ## Before running the real jobs: `test_cluster_mode.sh`
 
@@ -46,9 +57,9 @@ built-in tiny test dataset:
 
 - `--maxjobs 24` / `--jobinterval 100` in each script throttle how many
   concurrent stage jobs Martian keeps in the SLURM queue and how fast it
-  submits them. Raise `--maxjobs` if `b1169` can support more concurrent jobs
-  and you want more parallelism; lower it if you hit per-user pending-job
-  limits.
+  submits them. Raise `--maxjobs` if `b1042`/`genomics` can support more
+  concurrent jobs and you want more parallelism; lower it if you hit
+  per-user pending-job limits.
 - Each pool's parent SLURM job only requests 4 cores / 16G / 96h — this
   covers `mrp` plus any Martian stages marked "local" (which always run
   inside the parent process regardless of jobmode). The real per-stage

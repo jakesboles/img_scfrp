@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --account b1169
-#SBATCH --partition b1169
+#SBATCH --account b1042
+#SBATCH --partition genomics
 #SBATCH --job-name iMG3_cellranger
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 4
@@ -11,7 +11,7 @@
 
 # Runs in Cell Ranger cluster mode: this job itself only hosts the
 # lightweight Martian (mrp) controller process, which submits one sbatch job
-# per pipeline stage chunk to b1169/b1169 via slurm.template. See
+# per pipeline stage chunk to b1042/genomics via slurm.template. See
 # cellranger_scripts/test_cluster_mode.sh to validate the template before
 # running this.
 
