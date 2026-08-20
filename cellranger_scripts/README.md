@@ -6,32 +6,29 @@ mode](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/c
 via `--jobmode=slurm.template`. Instead of doing all the work inside one
 SLURM allocation, the SLURM job you submit only hosts the lightweight Martian
 (`mrp`) controller process; `mrp` in turn submits one `sbatch` job per
-pipeline stage chunk to the `b1169`/`b1169` account/partition using
+pipeline stage chunk to the `b1042`/`genomics` account/partition using
 `slurm.template`, so a single pool's run is spread across many concurrent
 cluster jobs instead of being capped by one node's core count.
 
-`b1169`/`b1169` only runs ~3 sub-jobs concurrently — almost certainly a
-per-account/QOS concurrent-job cap. We tried `b1042`/`genomics`
-(Northwestern's shared Genomics Compute Cluster queue) expecting more
-concurrency, but it made things worse: still only a few jobs running at a
-time, each sitting in the queue much longer before starting. That's
-consistent with `genomics` being a busy queue shared across many other
-groups' jobs — SLURM's fairshare/backfill scheduling decides when *your*
-jobs run based on cluster-wide demand, and no `cellranger`/Martian flag can
-override that from the client side. So this is back on `b1169`/`b1169`,
-where jobs at least start promptly even though only a few run at once.
+## Why `b1042`/`genomics`, not `b1169`/`b1169`
 
-If you want to push on this further, two read-only, no-admin-needed checks
-are worth running before/instead of another account switch:
-- `sacctmgr show qos format=name,maxjobspu,maxsubmitpu -p` — shows whether
-  `b1169`'s QOS has an explicit `MaxJobsPU` (max running jobs per user) that
-  would explain the ~3 concurrent cap directly.
-- `squeue -p genomics | wc -l` (or `sinfo -p genomics`) next time you try
-  `genomics`, to see how contested that partition is at the time — if it's
-  full of other users' jobs, that's the wait, not a config problem.
-If `MaxJobsPU` on `b1169` turns out to be the limit, an HPC admin would need
-to raise it — but that's a deliberate ask you make if/when you decide it's
-worth it, not something required to use cluster mode at all.
+We tried both. `b1169`/`b1169` only ever ran ~3 sub-jobs concurrently, and
+`sacctmgr` confirmed that account/QOS has a hard cap on running jobs per
+user, independent of how busy the cluster is. `b1042`/`genomics`
+(Northwestern's shared Genomics Compute Cluster queue) has no such per-user
+cap — it's limited only by actual traffic/contention on the genomics nodes
+at the time you submit, so real concurrency scales with `--maxjobs` instead
+of being capped at ~3 regardless of demand. That's the tradeoff: `genomics`
+can queue longer when the shared nodes are busy, but it has real headroom
+for parallelism that `b1169` structurally does not.
+
+Every parent job (`iMG1..4_cellranger.sh`, `test_cluster_mode.sh`) and
+`slurm.template` (which governs the sub-jobs Martian dispatches) must point
+at the same `b1042`/`genomics` account/partition — they were out of sync
+earlier (parent jobs switched but `slurm.template` still said `b1169`),
+which would have submitted every actual stage job under the wrong
+account. If you ever change this again, grep for `--account`/`--partition`
+across `cellranger_scripts/` to make sure all of them move together.
 
 ## Before running the real jobs: `test_cluster_mode.sh`
 
@@ -73,9 +70,10 @@ built-in tiny test dataset:
   more of your jobs concurrently than the partition's own QOS/fairshare
   allows. Raising `--maxjobs` only helps once the actual account/partition
   limit is higher.
-- Each pool's parent SLURM job only requests 4 cores / 16G / 96h — this
-  covers `mrp` plus any Martian stages marked "local" (which always run
-  inside the parent process regardless of jobmode). The real per-stage
-  compute happens in the jobs `slurm.template` submits, sized per-stage via
+- Each pool's parent SLURM job only requests 4 cores / 16G / 48h (`genomics`'s
+  walltime limit is 72h; 48h leaves margin) — this covers `mrp` plus any
+  Martian stages marked "local" (which always run inside the parent process
+  regardless of jobmode). The real per-stage compute happens in the jobs
+  `slurm.template` submits, sized per-stage via
   `__MRO_THREADS__`/`__MRO_MEM_GB__`, capped at 24h walltime each in the
   template.
