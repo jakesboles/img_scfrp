@@ -5,7 +5,7 @@
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 4
 #SBATCH --mem 16G
-#SBATCH --time 72:00:00
+#SBATCH --time 48:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A.log
 #SBATCH --verbose
 
