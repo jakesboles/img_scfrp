@@ -6,20 +6,32 @@ mode](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/c
 via `--jobmode=slurm.template`. Instead of doing all the work inside one
 SLURM allocation, the SLURM job you submit only hosts the lightweight Martian
 (`mrp`) controller process; `mrp` in turn submits one `sbatch` job per
-pipeline stage chunk to the `b1042`/`genomics` account/partition using
+pipeline stage chunk to the `b1169`/`b1169` account/partition using
 `slurm.template`, so a single pool's run is spread across many concurrent
 cluster jobs instead of being capped by one node's core count.
 
-Originally set to `b1169`/`b1169` (the allocation holding this repo's
-storage), but that only ran ~3 sub-jobs concurrently during
-`test_cluster_mode.sh` — almost certainly a per-account/QOS concurrent-job
-cap on `b1169`, not a `slurm.template` problem. Switched to `b1042`/`genomics`
-(Northwestern's shared Genomics Compute Cluster queue, also used in the
-original JSB127 example) since it should allow far more concurrency. If you
-change this back or to something else, edit the `--account`/`--partition`
-lines in `slurm.template` *and* in each `#SBATCH` header below (`iMG1..4_cellranger.sh`,
-`test_cluster_mode.sh`) — they don't have to match each other, but keeping
-them the same avoids confusion about which queue is being used for what.
+`b1169`/`b1169` only runs ~3 sub-jobs concurrently — almost certainly a
+per-account/QOS concurrent-job cap. We tried `b1042`/`genomics`
+(Northwestern's shared Genomics Compute Cluster queue) expecting more
+concurrency, but it made things worse: still only a few jobs running at a
+time, each sitting in the queue much longer before starting. That's
+consistent with `genomics` being a busy queue shared across many other
+groups' jobs — SLURM's fairshare/backfill scheduling decides when *your*
+jobs run based on cluster-wide demand, and no `cellranger`/Martian flag can
+override that from the client side. So this is back on `b1169`/`b1169`,
+where jobs at least start promptly even though only a few run at once.
+
+If you want to push on this further, two read-only, no-admin-needed checks
+are worth running before/instead of another account switch:
+- `sacctmgr show qos format=name,maxjobspu,maxsubmitpu -p` — shows whether
+  `b1169`'s QOS has an explicit `MaxJobsPU` (max running jobs per user) that
+  would explain the ~3 concurrent cap directly.
+- `squeue -p genomics | wc -l` (or `sinfo -p genomics`) next time you try
+  `genomics`, to see how contested that partition is at the time — if it's
+  full of other users' jobs, that's the wait, not a config problem.
+If `MaxJobsPU` on `b1169` turns out to be the limit, an HPC admin would need
+to raise it — but that's a deliberate ask you make if/when you decide it's
+worth it, not something required to use cluster mode at all.
 
 ## Before running the real jobs: `test_cluster_mode.sh`
 
@@ -55,11 +67,12 @@ built-in tiny test dataset:
 
 ## Tuning
 
-- `--maxjobs 24` / `--jobinterval 100` in each script throttle how many
-  concurrent stage jobs Martian keeps in the SLURM queue and how fast it
-  submits them. Raise `--maxjobs` if `b1042`/`genomics` can support more
-  concurrent jobs and you want more parallelism; lower it if you hit
-  per-user pending-job limits.
+- `--maxjobs 24` / `--jobinterval 100` in each script only cap how many
+  stage jobs Martian is *willing* to have pending/running in the queue at
+  once and how fast it submits them — they can't force the scheduler to run
+  more of your jobs concurrently than the partition's own QOS/fairshare
+  allows. Raising `--maxjobs` only helps once the actual account/partition
+  limit is higher.
 - Each pool's parent SLURM job only requests 4 cores / 16G / 96h — this
   covers `mrp` plus any Martian stages marked "local" (which always run
   inside the parent process regardless of jobmode). The real per-stage
