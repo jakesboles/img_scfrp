@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --account b1169
-#SBATCH --partition b1169
+#SBATCH --account b1042
+#SBATCH --partition genomics
 #SBATCH --job-name iMG1_cellranger
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 4
