@@ -14,8 +14,8 @@
 # --account/--partition and a per-stage walltime cap added for this project.
 #
 #SBATCH -J __MRO_JOB_NAME__
-#SBATCH --account=b1169
-#SBATCH --partition=b1169
+#SBATCH --account=b1042
+#SBATCH --partition=genomics
 #SBATCH --export=ALL
 #SBATCH --nodes=1
 #SBATCH --ntasks=1 --cpus-per-task=__MRO_THREADS__
