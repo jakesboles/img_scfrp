@@ -56,3 +56,4 @@ tab_data/*
 logs/*
 cellranger/*
 cellbender/*
+downsampled_fastq/*
