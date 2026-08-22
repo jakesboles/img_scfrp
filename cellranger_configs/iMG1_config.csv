@@ -6,7 +6,6 @@ create-bam,false
 [libraries]
 fastq_id,fastqs,feature_types
 iMG1,/projects/b1169/boles/img_scfrp/fastq/Gate38_11.22.2024,Gene Expression
-iMG1_redo,/projects/b1169/boles/img_scfrp/fastq/Gate40,Gene Expression
 
 [samples]
 sample_id,probe_barcode_ids
