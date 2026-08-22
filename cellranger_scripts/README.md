@@ -1,7 +1,7 @@
 # Cell Ranger cluster-mode setup
 
-The 4 pool jobs (`iMG1_cellranger.sh` ... `iMG4_cellranger.sh`) run
-`cellranger multi` in [cluster
+The 5 pool jobs (`iMG1_cellranger.sh`, `iMG1_redo_cellranger.sh`,
+`iMG2_cellranger.sh` ... `iMG4_cellranger.sh`) run `cellranger multi` in [cluster
 mode](https://www.10xgenomics.com/support/software/cell-ranger/latest/advanced/cr-cluster-mode)
 via `--jobmode=slurm.template`. Instead of doing all the work inside one
 SLURM allocation, the SLURM job you submit only hosts the lightweight Martian
@@ -9,6 +9,27 @@ SLURM allocation, the SLURM job you submit only hosts the lightweight Martian
 pipeline stage chunk to the `b1042`/`genomics` account/partition using
 `slurm.template`, so a single pool's run is spread across many concurrent
 cluster jobs instead of being capped by one node's core count.
+
+## Why iMG1 and iMG1_redo are separate runs
+
+`iMG1` (fastqs under `fastq/Gate38_11.22.2024/`) and `iMG1_redo` (fastqs
+under `fastq/Gate40/`) both contain the same 15 batch-1 samples and the same
+`BC001`-`BC016` probe barcode assignment, but they came from two physically
+distinct 10x Chromium captures — a second cell aliquot loaded onto a new
+gel bead pool after the first capture. Because probe-barcoded FRP samples
+are demultiplexed by (10x cell barcode, probe barcode) within a single GEM
+well, and 10x cell barcodes are drawn from the same fixed whitelist across
+*any* two independent gel bead pools, a cell barcode from the `iMG1` capture
+and a cell barcode from the `iMG1_redo` capture can collide by chance even
+though they came from different physical cells. Running both captures
+through one `multi` call (as the original single `iMG1_config.csv` briefly
+did, pointing `[libraries]` at both fastq dirs) would let Cell Ranger treat
+same-barcode reads from each capture as one cell. Keeping them as two
+`multi` runs (`iMG1_config.csv`/`iMG1_cellranger.sh` and
+`iMG1_redo_config.csv`/`iMG1_redo_cellranger.sh`, each with a single
+`[libraries]` row) avoids that entirely — sample_ids in the redo config are
+suffixed `_redo` (e.g. `KOLF_untreated_1_redo`) so downstream analysis can't
+mix them up with the originals either.
 
 ## Why `b1042`/`genomics`, not `b1169`/`b1169`
 
@@ -22,7 +43,8 @@ of being capped at ~3 regardless of demand. That's the tradeoff: `genomics`
 can queue longer when the shared nodes are busy, but it has real headroom
 for parallelism that `b1169` structurally does not.
 
-Every parent job (`iMG1..4_cellranger.sh`, `test_cluster_mode.sh`) and
+Every parent job (`iMG1_cellranger.sh`, `iMG1_redo_cellranger.sh`,
+`iMG2..4_cellranger.sh`, `test_cluster_mode.sh`) and
 `slurm.template` (which governs the sub-jobs Martian dispatches) must point
 at the same `b1042`/`genomics` account/partition — they were out of sync
 earlier (parent jobs switched but `slurm.template` still said `b1169`),
