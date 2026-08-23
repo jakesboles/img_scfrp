@@ -57,3 +57,4 @@ logs/*
 cellranger/*
 cellbender/*
 downsampled_fastq/*
+*.tar.gz
