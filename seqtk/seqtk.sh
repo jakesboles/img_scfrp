@@ -1,31 +1,43 @@
 #!/bin/bash
 #SBATCH --account b1042
 #SBATCH --partition genomics
-#SBATCH --job-name stk_img
+#SBATCH --job-name seqtk_downsample
 #SBATCH --nodes 1
-#SBATCH --ntasks-per-node 16
-#SBATCH --mem 80GB
-#SBATCH --time 8:00:00
-#SBATCH --cpus-per-task=16
-#SBATCH --output /gpfs/projects/b1169/boles/img_scfrp/logs/%x_%j.log
+#SBATCH --ntasks-per-node 1
+#SBATCH --cpus-per-task 2
+#SBATCH --mem 8G
+#SBATCH --time 4:00:00
+#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a.log
 #SBATCH --verbose
-#SBATCH --array=1-5
+#
+# --array is intentionally not set here: the number of tasks depends on how
+# many FASTQ files downsample_manifest.txt lists, which varies as source
+# data changes. Run seqtk/build_manifest.sh first, then submit with:
+#   sbatch --array=1-N seqtk/seqtk.sh
+# where N is the line count build_manifest.sh reports (add a throttle if
+# you don't want all files downsampling at once, e.g. --array=1-N%20).
 
 module load seqtk
 
-cd /gpfs/projects/b1169/boles/img_scfrp/
+REPO="/projects/b1169/boles/img_scfrp"
+MANIFEST="$REPO/seqtk/downsample_manifest.txt"
 
-# 2. Get the specific file and fraction for THIS task
-LINE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" seqtk/downsample_targets.txt)
-FILE=$(echo $LINE | cut -d' ' -f1)
-FRACTION=$(echo $LINE | cut -d' ' -f2)
+LINE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MANIFEST")
+SRC=$(echo "$LINE" | cut -d',' -f1)
+FRACTION=$(echo "$LINE" | cut -d',' -f2)
+DEST=$(echo "$LINE" | cut -d',' -f3)
 
-echo "Task ${SLURM_ARRAY_TASK_ID}: Downsampling ${FILE} with fraction ${FRACTION}"
+mkdir -p "$(dirname "$DEST")"
 
-# 3. Run seqtk
-# Note: We use the same seed -s100 across all tasks. 
-# Because the R1 and R2 for a specific lane are processed with the same seed, 
-# the same reads will be picked and pairing will be preserved.
-seqtk sample -s100 "$FILE" "$FRACTION" | gzip > "downsampled_fastq/${FILE}"
+echo "Task ${SLURM_ARRAY_TASK_ID}: ${SRC} -> ${DEST} (fraction ${FRACTION})"
+
+# Each FASTQ file (R1 and R2 are separate array tasks) is downsampled
+# independently with the same fixed seed. seqtk's per-read sampling
+# decision depends only on the read's position/content and the seed, so R1
+# and R2 of the same lane -- sampled in separate tasks -- still pick the
+# same reads and stay paired. The same seed being reused across different
+# lanes/pools is fine too: pairing only depends on a lane's R1 and R2 seeing
+# the same seed, not on every file in the manifest using a different one.
+seqtk sample -s100 "$SRC" "$FRACTION" | gzip > "$DEST"
 
 echo "Done."
