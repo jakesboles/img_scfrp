@@ -9,6 +9,7 @@
 #SBATCH --time 4:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a.log
 #SBATCH --verbose
+#SBATCH --array=1-68
 #
 # --array is intentionally not set here: the number of tasks depends on how
 # many FASTQ files downsample_manifest.txt lists, which varies as source
