@@ -1,3 +1,24 @@
+# BROKEN -- do not use this to recreate the environment.
+#
+# This has no `dependencies:` list at all, so `conda env create -f
+# Cellbender2.yml` would produce an empty environment with none of Python,
+# PyTorch, or cellbender installed. The original CellbenderEnv2.sh ran
+# `conda env export --prefix /projects/b1169/thomas/CellbenderEnv2`, but
+# the environment was actually created at
+# /projects/b1169/thomas/CellbenderEnv2/env/Cellbender2 (one level down,
+# per that script's `mamba create --prefix ./env/Cellbender2` line) --
+# exporting the parent project folder instead of the environment itself is
+# why this came out empty.
+#
+# CellbenderEnv2.sh has been fixed to export from the correct path and
+# write to an absolute location; re-run it to produce a real yml. If you
+# still have access to Thomas's original environment at
+# /projects/b1169/thomas/CellbenderEnv2/env/Cellbender2, running
+# `conda env export --prefix /projects/b1169/thomas/CellbenderEnv2/env/Cellbender2`
+# against it directly (before that directory is ever cleaned up) is the
+# only way to capture the *exact* packages he actually used -- the fixed
+# create script instead gives you a fresh, working environment for the
+# same purpose, not necessarily byte-identical to his.
 name: /projects/b1169/thomas/CellbenderEnv2
 channels:
   - conda-forge
