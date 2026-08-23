@@ -40,7 +40,7 @@ python -m ipykernel install --user --name cellbender --display-name "CellBender"
 # both wrong -- it pointed --prefix at the parent project folder instead of
 # env/Cellbender2, which silently produced a yml with an empty
 # dependencies list (see CellbenderEnv2/Cellbender2.yml's header comment).
-YML_OUT="/projects/b1169/boles/img_scfrp/cellbender_scripts/CellbenderEnv2/Cellbender2.yml"
+YML_OUT="/projects/b1169/boles/img_scfrp/cellbender_scripts/cellbender_env.yml"
 conda env export --prefix "$ENV_DIR" > "$YML_OUT"
 
 echo "Wrote $YML_OUT -- verify it has a real dependencies: list (not just"
