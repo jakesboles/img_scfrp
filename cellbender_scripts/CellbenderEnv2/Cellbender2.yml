@@ -1,0 +1,6 @@
+name: /projects/b1169/thomas/CellbenderEnv2
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+prefix: /projects/b1169/thomas/CellbenderEnv2
