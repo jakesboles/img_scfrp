@@ -19,7 +19,7 @@
 # nodes.
 #
 # Usage:
-#   Rscript cellbender_scripts/CellQuantities.R   # writes cell_quantities.csv
+#   Rscript cellbender_scripts/make_cellbender_params.R   # writes cell_quantities.csv
 #   bash cellbender_scripts/run_all_cellbender.sh  # self-submits the array job
 
 REPO="/projects/b1169/boles/img_scfrp"
@@ -30,7 +30,7 @@ if [ -z "$SLURM_ARRAY_TASK_ID" ]; then
     # invocation. Compute the array size from the CSV (minus its header) and
     # resubmit this same script as an array job.
     if [ ! -f "$CSV" ]; then
-        echo "Missing $CSV -- run CellQuantities.R first." >&2
+        echo "Missing $CSV -- run make_cellbender_params.R first." >&2
         exit 1
     fi
     n=$(( $(wc -l < "$CSV") - 1 ))
