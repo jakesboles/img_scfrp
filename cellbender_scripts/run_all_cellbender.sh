@@ -37,7 +37,7 @@ if [ -z "$SLURM_ARRAY_TASK_ID" ]; then
     echo "Submitting ${n} CellBender jobs (1-${n})"
     # %8 caps concurrent A100 usage -- raise/lower to match how much of the
     # genomics-gpu partition you can actually use at once.
-    exec sbatch --array=1-${n}%8 "$0"
+    exec sbatch --array=1-${n}%1 "$0"
 fi
 
 module purge
