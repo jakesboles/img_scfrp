@@ -114,3 +114,52 @@ recommended next steps:
 - If it correlates with how many array tasks are running at once, try
   lowering the `%8` throttle in `run_all_cellbender.sh` to rule out GPU
   contention on shared nodes.
+
+## Follow-up: jobs failing at CUDA init, not mid-training
+
+After the fixes above, jobs started failing a different way, at the very
+start rather than partway through training (example: `GALC_untreated_1`,
+`cells=2431` — a perfectly sane, correctly-formed input, so this is not the
+duplicate-row bug recurring):
+
+```
+UserWarning: CUDA initialization: CUDA unknown error - this may be due to
+an incorrectly set up environment... Setting the available devices to be
+zero.
+...
+AssertionError: Trying to use CUDA, but CUDA is not available.
+```
+
+This is a different, earlier failure point than issue 3 above (that one got
+partway through training before crashing; this one can't even see a GPU
+device via `torch.cuda.is_available()`). Given that at least one job
+(`GALC_asyn_1`, in the same environment, same partition) has fully
+succeeded, and now multiple jobs are failing this same way, the most likely
+explanation is a specific bad or misconfigured node in `genomics-gpu` --
+not something fixable in this repo's scripts, but something worth
+confirming with data before treating it as a cluster/admin issue.
+
+`run_all_cellbender.sh` now logs `hostname` and `nvidia-smi`'s own view of
+the GPU at the start of every task, and the SLURM output filename includes
+the node name (`%N`) so a failing job's log immediately identifies which
+node was responsible, without needing to reproduce the failure separately.
+
+**Next steps once a few more jobs have run (succeeded or failed):**
+1. Check whether failures cluster on one or a few node names
+   (`grep -l "CUDA unknown error" logs/cellbender_*.log` then look at each
+   log's `Running on host:` line, or just check the filenames since they
+   now include `%N`).
+2. If they do, that node's `nvidia-smi` output in the same log (or its
+   absence, if `nvidia-smi` itself failed) tells you whether the GPU is
+   visible/healthy on that node at all.
+3. If a specific node is consistently bad, `--exclude=<nodename>` on the
+   `sbatch` command (or added to `run_all_cellbender.sh`'s resubmit line)
+   avoids it going forward, and reporting that specific node + the
+   `nvidia-smi` output to HPC support gives them something concrete to act
+   on -- much more useful than "CellBender jobs sometimes fail on
+   genomics-gpu."
+4. If failures *don't* cluster on particular nodes (i.e. it's happening
+   cluster-wide, intermittently, on nodes that also succeed sometimes),
+   that points more toward transient contention or a driver/CUDA-runtime
+   mismatch that isn't node-specific, and is worth raising with HPC support
+   directly with a couple of example job IDs.

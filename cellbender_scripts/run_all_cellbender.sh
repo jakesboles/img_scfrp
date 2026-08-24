@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node 1
 #SBATCH --mem 30G
 #SBATCH --time 2:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a_%N.log
 #SBATCH --verbose
 #
 # Replaces Thomas's CellbenderBatch.sh + CellbenderInd.sh (one sbatch call
@@ -44,6 +44,18 @@ module purge
 module load python-miniconda3/4.10.3
 module load mamba
 source activate "$REPO/envs/cellbender"
+
+# Recent jobs have failed with "CUDA unknown error" / "CUDA is not
+# available" right at startup -- a different, earlier-stage failure than
+# the mid-training crash seen before, and on inputs that are otherwise
+# fine. That pattern (some jobs fully succeed, others can't see a GPU at
+# all) usually means a specific bad/misconfigured node in the partition,
+# not a bug in this script or the input data. Logging the node name and
+# nvidia-smi's own view of the GPU up front means a future failure's log
+# immediately shows which node was responsible and what it saw, instead of
+# having to reproduce the failure to find out.
+echo "Running on host: $(hostname)"
+nvidia-smi || echo "nvidia-smi failed or found no GPU on this node"
 
 # Without this, CellBender's report-generation step fails at the very end
 # with UnicodeDecodeError ('ascii' codec can't decode byte ...) any time the
