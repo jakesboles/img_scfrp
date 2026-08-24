@@ -45,8 +45,29 @@ module load python-miniconda3/4.10.3
 module load mamba
 source activate "$REPO/envs/cellbender"
 
+# Without this, CellBender's report-generation step fails at the very end
+# with UnicodeDecodeError ('ascii' codec can't decode byte ...) any time the
+# rendered HTML happens to contain a non-ASCII byte -- Python falls back to
+# the locale's default encoding when a file is opened without one specified,
+# and this cluster's default locale is plain ASCII/C, not UTF-8. Everything
+# before that point (the actual denoised .h5 outputs) still completes either
+# way, but this avoids the job ending on a traceback for a report that isn't
+# otherwise needed.
+export LC_ALL=en_US.UTF-8
+export LANG=en_US.UTF-8
+
 LINE=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" "$CSV")
 IFS=',' read -r POOL_DIR SAMPLE CELLS DROPLETS <<< "$LINE"
+
+# Catches a real bug we hit: cell_quantities.csv briefly had a spurious
+# second row per sample (a library-wide total mislabeled as that sample's
+# count) that produced huge, wrong --expected-cells/--total-droplets-included
+# values and burned GPU time before crashing partway through. Fail fast
+# instead of launching cellbender on obviously-bad input.
+if ! [[ "$CELLS" =~ ^[0-9]+$ && "$DROPLETS" =~ ^[0-9]+$ && "$CELLS" -gt 0 && "$DROPLETS" -gt "$CELLS" ]]; then
+    echo "Bad row for task ${SLURM_ARRAY_TASK_ID}: '${LINE}' (pool_dir=${POOL_DIR} sample=${SAMPLE} cells=${CELLS} droplets=${DROPLETS})" >&2
+    exit 1
+fi
 
 OUT_DIR="$REPO/cellbender/${POOL_DIR}/${SAMPLE}"
 mkdir -p "$OUT_DIR"
