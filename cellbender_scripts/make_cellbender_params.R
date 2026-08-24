@@ -34,9 +34,22 @@ for (pool in names(pool_dirs)) {
     metrics_path <- file.path(samples_dir, sample, "metrics_summary.csv")
     metrics <- read.csv(metrics_path)
 
-    # Filter by Metric.Name rather than assuming a fixed row order (this is
-    # what seqtk/get_seqtk_proportions.R already does for the same file).
-    cells <- as.numeric(metrics$Metric.Value[metrics$Metric.Name == "Cells"])
+    # metrics_summary.csv contains both a per-sample "Cells" metric AND a
+    # library-wide "Cells" metric (the whole GEM well's total, identical
+    # across every sample sharing that pool) under the same Metric.Name --
+    # filtering on Metric.Name alone matches both and silently produced two
+    # rows per sample here before (visible as e.g. every iMG1_downsampled
+    # sample also getting a spurious second row with the same huge value).
+    # Category == "Cells" is what actually picks out the sample-specific row.
+    is_match <- metrics$Metric.Name == "Cells" & metrics$Category == "Cells"
+    if (sum(is_match) != 1) {
+      stop(sprintf(
+        "Expected exactly 1 matching 'Cells' row for %s/%s, found %d. Matching metrics_summary.csv rows:\n%s",
+        pool_dir, sample, sum(is_match),
+        paste(capture.output(print(metrics[metrics$Metric.Name == "Cells", ])), collapse = "\n")
+      ))
+    }
+    cells <- as.numeric(metrics$Metric.Value[is_match])
 
     # pool_dir (not just `pool`) is written out so run_all_cellbender.sh's
     # bash array task can build the Cell Ranger --input path and the
