@@ -42,8 +42,8 @@ manifest <- read.csv("cellbender_scripts/cell_quantities.csv")
 manifest$sample_unified <- str_remove(manifest$sample, "_redo$")
 
 meta <- read.csv("samples.csv") %>%
-  select(id, genotype, treatment, date, batch) %>%
-  rename(sample = id)
+  select(id, genotype, treatment, batch) %>%
+  dplyr::rename(sample = id)
 
 manifest <- manifest %>%
   left_join(meta, by = "sample")
