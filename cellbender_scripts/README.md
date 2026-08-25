@@ -163,3 +163,57 @@ node was responsible, without needing to reproduce the failure separately.
    that points more toward transient contention or a driver/CUDA-runtime
    mismatch that isn't node-specific, and is worth raising with HPC support
    directly with a couple of example job IDs.
+
+## Conclusion: GPU contention on qgpu0102, and running on CPU instead
+
+Followed the steps above to a firm diagnosis, without needing HPC support to
+get unblocked:
+
+- Every job across multiple array submissions landed on the same node,
+  `qgpu0102`. `sacct --format=JobID,NodeList,Start,End,State` on those
+  arrays showed groups of tasks starting at the *identical second* on that
+  node, with only one task per group surviving (job `4141845`: tasks 1, 2,
+  3, 4 all start at `13:55:38` -- only 1 completes; similar clustering at
+  `14:01:2x` and `14:16:19`). `qgpu0102` has exactly one physical A100
+  (confirmed via its own `nvidia-smi` output), so this is multiple
+  `--gres=gpu:a100:1` allocations landing on one GPU at once -- only one can
+  actually claim it, the rest get a broken CUDA context and fail within
+  about a minute, every time.
+- Dropping the array throttle to `%1` (fully serializing our own tasks, so
+  none of them can collide with each other) still failed the same way. That
+  rules out self-contention as the sole cause -- something else is also
+  landing on `qgpu0102` at the same moments.
+- `scontrol show job` on an interactive request excluding `qgpu0102`
+  explained why: `qgpu0102` is the *only* one of `genomics-gpu`'s four nodes
+  that account `b1042` has fast, non-buy-in-gated access to. The other three
+  (`qgpu0101`, `qgpu0519`, `qgpu0520`) showed `Reason=Priority`,
+  `QOS=buyin`, with an estimated start time over 24 hours out -- they belong
+  to another group's buy-in allocation. So every `b1042` GPU job, from
+  however many users share that account, funnels onto `qgpu0102`, which is
+  exactly the kind of volume that produces frequent collisions on a
+  single-GPU node.
+
+None of that is fixable from this repo -- it's cluster allocation policy
+plus (probably) a scheduler/gres issue on that one node, worth reporting to
+HPC support with the `sacct` evidence above. But since the input data isn't
+large (5-10k cells, ~15k reads/cell per sample) and CellBender fully
+supports CPU-only inference (`--cpu-threads N` in place of `--cuda`; see the
+[CLI reference](https://raw.githubusercontent.com/broadinstitute/CellBender/v0.3.0/cellbender/remove_background/argparser.py)),
+**`run_all_cellbender_cpu.sh`** runs the exact same pipeline on the
+`genomics` CPU partition instead -- the same partition Cell Ranger cluster
+mode and `seqtk` have used throughout this project without a single
+contention issue, even at higher concurrency (`--maxjobs 24`,
+`--array=1-68`). It's slower per sample (likely low hours instead of
+~15-20 minutes -- CellBender's own docs cite ~5h for a 10k-cell dataset on
+12 CPU cores, and ours are smaller/lower-depth than that), but reliable, and
+doesn't require waiting on HPC support to get all 75 samples done. Usage is
+identical to the GPU script:
+
+```
+Rscript cellbender_scripts/make_cellbender_params.R
+bash cellbender_scripts/run_all_cellbender_cpu.sh
+```
+
+`run_all_cellbender.sh` (GPU) is left in place for once `qgpu0102`'s
+oversubscription gets sorted out -- it's meaningfully faster per sample when
+it works.
