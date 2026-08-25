@@ -4,7 +4,7 @@
 #SBATCH --job-name cellbender_cpu
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 1
-#SBATCH --cpus-per-task 8
+#SBATCH --cpus-per-task 16
 #SBATCH --mem 30G
 #SBATCH --time 12:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a_%N.log
@@ -37,7 +37,7 @@ if [ -z "$SLURM_ARRAY_TASK_ID" ]; then
     echo "Submitting ${n} CellBender (CPU) jobs (1-${n})"
     # %20 -- genomics has handled comparable or higher concurrency
     # elsewhere in this repo without issue; adjust to taste.
-    exec sbatch --array=1-${n}%20 "$0"
+    exec sbatch --array=1-${n} "$0"
 fi
 
 module purge
