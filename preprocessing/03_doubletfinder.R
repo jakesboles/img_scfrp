@@ -1,17 +1,21 @@
-# Runs DoubletFinder independently on each of the 5 GEM wells (iMG1,
-# iMG1_redo, iMG2, iMG3, iMG4) -- doublets form during droplet
-# partitioning, which happens once per physical 10x reaction, not once per
-# multiplexed sample, so this splits by `pool_dir` (the real GEM well),
-# not samples.csv's `batch` column (1-4), which iMG1 and iMG1_redo share
-# and would incorrectly pool them back together.
+# Runs as a SLURM job array (see run_03_doubletfinder.sh), one task per
+# (pool_dir, sample) capture -- 75 total: 5 GEM wells x 15 multiplexed
+# samples each. Each task independently loads its own capture's raw
+# per-sample BPCells matrix from 01_obj_creation.R and the shared QC
+# metadata from 02_qc.R, so no task ever materializes the whole-cohort
+# object. Adapted from als_cns_scrnaseq/r_scripts/04_doubletfinder.R's
+# per-sample pattern.
 #
-# Adapted from als_cns_scrnaseq/r_scripts/04_doubletfinder.R, but that
-# script processes one individual sample per SLURM array task (that
-# project has one GEM well per sample, so "per sample" and "per GEM well"
-# are the same thing there -- not true here, where FRP multiplexing puts
-# up to 16 samples in one GEM well). Kept as a single script looping over
-# the 5 pools instead of a job array, since 5 units doesn't need SLURM
-# array parallelism the way 90 (or even this project's 75 samples) would.
+# NOTE on doublet rate: because DoubletFinder runs within one demultiplexed
+# sample's own cells rather than across the whole GEM well, the doublet
+# rate below is computed from that one sample's own recovered cell count --
+# matching the ALS script exactly, as asked. But the real physical
+# doublet-formation probability for FRP/probe-multiplexed data depends on
+# how many total cells were loaded into the WHOLE GEM well (up to 15
+# samples' worth), not the much smaller slice recovered for one probe
+# barcode, so this likely underestimates the true rate here. Flagged
+# rather than silently deviated from the requested pattern -- worth
+# revisiting if it matters for your analysis.
 
 suppressMessages({
   library(tidyverse)
@@ -36,26 +40,99 @@ data_out_dir <- "data/03_doubletfinder/"
 dir.create(paste0(data_out_dir, "bpcells_persample/"), showWarnings = F, recursive = T)
 dir.create(paste0(data_out_dir, "metadata_persample/"), showWarnings = F, recursive = T)
 
-message2("Reading in QC-filtered object")
+# Figure out which capture this task handles ---------------------------------
 
-counts <- open_matrix_dir("data/02_qc/bpcells")
-meta <- readRDS("data/02_qc/metadata.rds")
+task_id <- Sys.getenv("SLURM_ARRAY_TASK_ID")
+if (task_id == "") {
+  stop("SLURM_ARRAY_TASK_ID is not set -- this script is meant to run as a ",
+       "SLURM job array (see run_03_doubletfinder.sh), one task per capture, ",
+       "not as a standalone Rscript call.")
+}
+task_id <- as.integer(task_id)
 
-pools <- sort(unique(meta$pool_dir))
-message(paste0("Found ", length(pools), " pools: ", paste(pools, collapse = ", ")))
+message2("Loading manifest")
 
-# Doublet rate uses each pool's PRE-QC cell count on purpose: doublets form
-# during the original partitioning step, so the rate should reflect how
-# many cells were originally captured in that GEM well, not how many
-# survived 02_qc.R's filtering. 01_obj_assembly's metadata has every cell,
-# pre-filter, with `pool_dir` already attached.
-preqc_meta <- readRDS("data/01_obj_assembly/metadata.rds")
-preqc_counts <- preqc_meta %>%
-  count(pool_dir, name = "n_cells_preqc")
+# cell_quantities.csv has one row per (pool_dir, sample) capture -- the same
+# 75 distinct-capture identities 01_obj_creation.R wrote to
+# bpcells_persample/. Sorting guarantees the same capture <-> array index
+# mapping every run.
+manifest <- read.csv("cellbender_scripts/cell_quantities.csv") %>%
+  arrange(pool_dir, sample)
+
+if (task_id < 1 | task_id > nrow(manifest)) {
+  stop(paste0("SLURM_ARRAY_TASK_ID (", task_id, ") is out of range for ",
+              nrow(manifest), " captures -- check the --array range in ",
+              "run_03_doubletfinder.sh against nrow(cell_quantities.csv)."))
+}
+
+capture <- manifest[task_id, ]
+sample_id <- capture$sample   # distinct per-capture id, e.g. GALC_asyn_1_redo
+pool_dir <- capture$pool_dir
+# 01_obj_creation.R strips _redo before storing this as the object's
+# `sample` metadata (both captures of the same biological sample share it);
+# pool_dir is what actually distinguishes them, so both are needed to find
+# the right cells in 02_qc.R's metadata below.
+sample_unified <- str_remove(sample_id, "_redo$")
+
+message2(paste0("Processing ", sample_id, " (", pool_dir, ", task ", task_id,
+                "/", nrow(manifest), ")"))
+
+# Load and filter this capture's matrix ---------------------------------------
+
+message2("Loading raw per-capture matrix")
+
+# Cell barcodes in the per-capture matrices from 01_obj_creation.R are NOT
+# sample-prefixed (that prefixing happens later, at the whole-cohort merge
+# step), so it's reapplied here to match 02_qc.R's metadata, whose cell
+# names are "<sample_id>_<barcode>".
+mat <- open_matrix_dir(paste0("data/01_obj_assembly/bpcells_persample/", sample_id))
+colnames(mat) <- paste0(sample_id, "_", colnames(mat))
+
+message2("Loading QC metadata for this capture")
+
+meta_all <- readRDS("data/02_qc/metadata.rds")
+
+# Matched on pool_dir + sample_unified (both exact categorical matches)
+# rather than string-prefix matching sample_id against rownames -- e.g.
+# "GALC_asyn_1" is a literal string prefix of "GALC_asyn_1_redo", so
+# prefix matching would silently pull in the wrong capture's cells.
+meta_sample <- meta_all[meta_all$pool_dir == pool_dir & meta_all$sample == sample_unified, ]
+
+# On purpose: this is the cell count for this demultiplexed sample BEFORE
+# 02_qc.R's discard filter (see the doublet-rate note at the top of this
+# file), matching als_cns_scrnaseq/r_scripts/04_doubletfinder.R's
+# n_cells_preqc <- nrow(meta_sample) exactly.
+n_cells_preqc <- nrow(meta_sample)
+
+meta_sample <- meta_sample[meta_sample$discard == F, ]
+
+# DoubletFinder's synthetic-doublet generation samples cell pairs WITH
+# replacement, which BPCells' `[` operator rejects (its lazy/streaming
+# model isn't built to replay the same column twice in one selection).
+# Materializing to a normal in-memory matrix avoids that -- fine memory-wise
+# for one sample's few thousand cells, and
+# NormalizeData()/ScaleData()/RunPCA() below need it materialized anyway.
+mat <- as(mat[, rownames(meta_sample)], "dgCMatrix")
+
+doublet_rate <- (n_cells_preqc / 10000) * 0.08
+
+obj <- CreateSeuratObject(counts = mat, meta.data = meta_sample)
+
+# Need to remove non-probe genes again -- 01_obj_creation.R's
+# bpcells_persample matrices were written before the probe-set gene filter
+# was applied to the merged object, so they still carry the full gene set.
+probes <- read.csv("/projects/p31535/boles/cellranger_references/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv",
+                   skip = 5)
+genes <- probes$probe_id %>%
+  str_split_i(pattern = "[|]", i = 2) %>%
+  unique()
+
+idx <- rownames(obj) %in% genes
+obj <- obj[idx, ]
 
 # Define function to run DoubletFinder ---------------------------------------
 
-run_doubletfinder <- function(s, doublet_rate, pool){
+run_doubletfinder <- function(s, doublet_rate, sample_id){
 
   # Standard normalization and scaling
   s <- s %>% NormalizeData() %>% FindVariableFeatures() %>% ScaleData()
@@ -63,10 +140,6 @@ run_doubletfinder <- function(s, doublet_rate, pool){
   # Default Seurat clustering and UMAP
   s <- s %>% RunPCA() %>% FindNeighbors(dims = 1:10) %>% FindClusters()
   s <- RunUMAP(s, dims = 1:10)
-
-  p <- DimPlot(s, reduction = "umap", group.by = "orig.ident")
-  ggsave(p, filename = paste0(plots_dir, pool, "_umap.png"),
-         units = "in", dpi = 600, height = 5, width = 10)
 
   # pK Identification (no ground-truth)
   sweep.res.list <- paramSweep(s, PCs = 1:10, sct = FALSE)
@@ -92,7 +165,11 @@ run_doubletfinder <- function(s, doublet_rate, pool){
                      nExp = nExp_poi.adj, reuse.pANN = pANN, sct = FALSE)
   colnames(s@meta.data)[grep("DF.classifications*", colnames(s@meta.data))] <- "DF.adj"
 
-  # Plot unadjusted vs. adjusted doublets in UMAP coordinates
+  # Plot unadjusted vs. adjusted doublets in UMAP coordinates. Filenames use
+  # the sample_id passed in (the distinct per-capture id), not
+  # s$orig.ident/s$sample -- both are the *unified* name (01_obj_creation.R
+  # strips _redo), so iMG1's and iMG1_redo's runs of the same biological
+  # sample would otherwise overwrite each other's plots.
   p1 <- DimPlot_scCustom(s, reduction = "umap", group.by = "DF.unadj",
                         pt.size = 1, shuffle = TRUE, alpha = 0.6) +
     ggtitle("Unadjusted")
@@ -101,45 +178,22 @@ run_doubletfinder <- function(s, doublet_rate, pool){
     ggtitle("Adjusted for Homotypic Proportion")
   p <- p1 + p2 + plot_layout(ncol = 2, nrow = 1, guides = "collect")
 
-  ggsave(p, filename = paste0(plots_dir, pool, "_doublet_umap.png"),
+  ggsave(p, filename = paste0(plots_dir, sample_id, "_doublet_umap.png"),
          units = "in", dpi = 600, height = 5, width = 10, bg = "white")
 
   return(s)
 }
 
-# Run DoubletFinder on each pool ----------------------------------------------
+message2("Running DoubletFinder")
 
-for (pool in pools) {
-  message2(paste0("Running ", pool))
+obj <- run_doubletfinder(obj, doublet_rate, sample_id)
 
-  # metadata.rds has cell barcodes as actual rownames (02_qc.R's last step
-  # before saving is column_to_rownames(var = "cell")), not a "cell"
-  # column -- base R `[` subsetting is used here rather than dplyr::filter()
-  # to avoid any doubt about whether rownames survive the subset, since a
-  # dropped/misaligned barcode here would silently mismatch this metadata
-  # against the matrix columns selected below.
-  meta_pool <- meta[meta$pool_dir == pool, ]
+# Save this capture's filtered, DoubletFinder-processed matrix + metadata ---
+message2("Saving filtered, DoubletFinder-processed capture")
 
-  # DoubletFinder's synthetic-doublet generation samples cell pairs WITH
-  # replacement, which BPCells' `[` operator rejects (its lazy/streaming
-  # model isn't built to replay the same column twice in one selection).
-  # Materializing to a normal in-memory matrix per pool avoids that --
-  # NormalizeData()/ScaleData()/RunPCA() below need the data materialized
-  # for a single pool's ~5-16k cells anyway, so this costs nothing extra.
-  mat_pool <- as(counts[, rownames(meta_pool)], "dgCMatrix")
+counts_out <- convert_matrix_type(obj[["RNA"]]$counts, type = "uint32_t")
+write_matrix_dir(mat = counts_out,
+                 dir = paste0(data_out_dir, "bpcells_persample/", sample_id))
 
-  n_preqc <- preqc_counts$n_cells_preqc[preqc_counts$pool_dir == pool]
-  doublet_rate <- (n_preqc / 10000) * 0.08
-
-  obj <- CreateSeuratObject(counts = mat_pool, meta.data = meta_pool)
-  obj <- run_doubletfinder(obj, doublet_rate, pool)
-
-  message2(paste0("Saving ", pool))
-
-  counts_out <- convert_matrix_type(obj[["RNA"]]$counts, type = "uint32_t")
-  write_matrix_dir(mat = counts_out,
-                   dir = paste0(data_out_dir, "bpcells_persample/", pool))
-
-  saveRDS(obj@meta.data,
-          file = paste0(data_out_dir, "metadata_persample/", pool, ".rds"))
-}
+saveRDS(obj@meta.data,
+        file = paste0(data_out_dir, "metadata_persample/", sample_id, ".rds"))
