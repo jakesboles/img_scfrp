@@ -87,14 +87,13 @@ obj <- obj %>%
 message2("Making raw QC plots")
 
 juxt_vln <- function(feature, title, xlab, file_suffix){
-  df <- obj@meta.data %>%
-    mutate(nFeature_RNA = nFeature_RNA / 1000,
-           nCount_RNA = log10(nCount_RNA))
+  df <- obj@meta.data
 
   p <- df %>%
     ggplot(aes(y = condition, x = {{feature}})) +
-    geom_quasirandom(aes(color = condition), size = 0.2) +
-    scale_color_manual(values = condition_pal) +
+    # geom_quasirandom(aes(color = condition), size = 0.2) +
+    geom_violin(aes(fill = condition)) +
+    scale_fill_manual(values = condition_pal) +
     ggtitle(title) +
     scale_y_discrete(limits = rev) +
     xlab(xlab) +
@@ -105,13 +104,18 @@ juxt_vln <- function(feature, title, xlab, file_suffix){
           plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank(),
           axis.text.y = element_text(hjust = 1))
+  
+  if (str_detect(deparse(substitute(feature)), "RNA")) { 
+    p <- p + 
+      scale_x_log10()
+    }
 
   ggsave(p, filename = paste0(plots_dir, "raw_", file_suffix, ".png"),
          units = "in", dpi = 600, height = 5, width = 10)
 }
 
 juxt_vln(nFeature_RNA, "Genes per cell", "# unique genes (x 1000)", "nfeature")
-juxt_vln(nCount_RNA, "UMIs per cell", "log10(# UMIs)", "ncount")
+juxt_vln(nCount_RNA, "UMIs per cell", "# UMI)", "ncount")
 juxt_vln(log10GenesPerUMI, "Cell complexity", "log10(# genes) / log10(# UMIs)", "complexity")
 juxt_vln(percent_mito, "Mitochondrial gene content", "% mitochondrial genes", "mito")
 
@@ -194,8 +198,8 @@ for (i in seq_along(samples)){
 # check these against the raw QC plots above before trusting them for this
 # dataset; they're inherited defaults, not re-derived for iMG.
 thresh_df <- thresh_df %>%
-  mutate(umi_lower = umi_med - 2 * umi_mad,
-         feature_lower = feature_med - 2 * feature_mad,
+  mutate(umi_lower = if_else(umi_med - 2 * umi_mad < log10(2000), log10(2000), umi_med - 2 * umi_mad),
+         feature_lower = if_else(feature_med - 2 * feature_mad < log10(2000), log10(2000), feature_med - 2 * feature_mad),
          mito_upper = 5,
          umi_upper = umi_med + 2.5 * umi_mad,
          feature_upper = feature_med + 2.5 * feature_mad)
@@ -211,10 +215,25 @@ meta <- meta %>%
 
 message2("Making discard-flag plots")
 
+# meta %>%
+#   ggplot(aes(y = condition,
+#              x = nCount_RNA)) + 
+#   geom_violin() +
+#   geom_errorbar(aes(xmin = umi_lower,
+#                     xmax = umi_upper)) +
+#   scale_y_discrete(limits = rev) +
+#   # xlab(xlab) +
+#   facet_wrap(. ~ batch, ncol = 4) +
+#   guides(color = guide_legend(override.aes = list(size = 2))) +
+#   theme_bw() +
+#   theme(axis.text = element_text(color = "black"),
+#         legend.title = element_blank(),
+#         plot.title = element_text(hjust = 0.5),
+#         axis.title.y = element_blank(),
+#         axis.text.y = element_text(hjust = 1))
+
 discard_plot <- function(feature, discard_flag, title, xlab, file_suffix){
   p <- meta %>%
-    mutate(nFeature_RNA = nFeature_RNA / 1000,
-           nCount_RNA = log10(nCount_RNA)) %>%
     ggplot(aes(y = condition, x = {{feature}})) +
     geom_quasirandom(aes(color = {{discard_flag}}), size = 0.2) +
     scale_color_manual(values = c("gray60", "red")) +
@@ -229,6 +248,11 @@ discard_plot <- function(feature, discard_flag, title, xlab, file_suffix){
           plot.title = element_text(hjust = 0.5),
           axis.title.y = element_blank(),
           axis.text.y = element_text(hjust = 1))
+  
+  if (str_detect(deparse(substitute(feature)), "RNA")) { 
+    p <- p + 
+      scale_x_log10()
+  }
 
   ggsave(p, filename = paste0(plots_dir, "thresholds_", file_suffix, ".png"),
          units = "in", dpi = 600, height = 5, width = 10)
