@@ -5,10 +5,18 @@
 # here -- DF.unadj/DF.adj are attached as metadata so a later script can
 # decide how to act on them.
 #
-# Note on the "sct_pca" directory name (kept for continuity with
-# 05_integration_cca.R/05_integration_harmony.R, which already hardcode
-# data/04_sct_pca/obj.rds): despite the name, this does standard
-# log-normalization via NormalizeData(), not SCTransform.
+# Output moved from a single data/04_sct_pca/obj.rds to BPCells/RDS pieces
+# (normalized data layer, metadata, PCA reduction, variable features) so
+# downstream scripts can reconstruct the object without loading a full
+# in-memory RDS, matching the convention 01_obj_creation.R/02_qc.R already
+# use. NOTE: 05_integration_cca.R, 05_integration_harmony.R, and
+# 05_integration_harmony_2-3.R still hardcode reading
+# data/04_sct_pca/obj.rds -- they will need to be updated to read the new
+# data/04_norm_pca/ pieces before they'll run again (deliberately left
+# broken for now, since those stages haven't been revisited yet).
+# Directory renamed data/04_sct_pca -> data/04_norm_pca to match: this does
+# standard log-normalization via NormalizeData(), not SCTransform, and the
+# old name was only kept for continuity with those now-broken paths.
 
 suppressMessages({
   library(tidyverse)
@@ -27,10 +35,10 @@ setwd("/projects/b1169/boles/img_scfrp")
 
 options(future.globals.maxSize = 64000 * (1024^2))
 
-plots_dir <- "plots/04_sct_pca/"
+plots_dir <- "plots/04_norm_pca/"
 dir.create(plots_dir, showWarnings = F, recursive = T)
 
-data_out_dir <- "data/04_sct_pca/"
+data_out_dir <- "data/04_norm_pca/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)
 
 # Read in 02's filtered, whole-cohort object --------------------------------
@@ -153,15 +161,23 @@ message2("Making PC loading plots")
 
 Iterate_PC_Loading_Plots(obj, file_path = plots_dir, file_name = "pca_loadings")
 
+# Same palettes as 02_qc.R's QC plots, for visual consistency across stages.
+genotype_pal <- c("red", "yellow", "green", "blue", "purple")
+treatment_pal <- JCO_Four()[1:3]
+batch_pal <- Dark2_Pal()[1:4]
+condition_pal <- DiscretePalette_scCustomize(num_colors = nlevels(obj$condition),
+                                             palette = "varibow")
+
 pca_plot <- function(dims){
 
+  # Grouped by condition (genotype x treatment, 15 levels), not the 60-level
+  # `sample` -- the 15-color palette here is sized to condition's levels.
   p1 <- DimPlot_scCustom(obj,
                          reduction = "pca",
                          label = F,
                          dims = dims,
-                         group.by = "sample",
-                         colors_use = DiscretePalette_scCustomize(num_colors = 15,
-                                                                  palette = "varibow"),
+                         group.by = "condition",
+                         colors_use = condition_pal,
                          raster = F) +
     theme(axis.text = element_text(size = 8),
           axis.title = element_text(size = 10),
@@ -172,7 +188,7 @@ pca_plot <- function(dims){
                          label = F,
                          dims = dims,
                          group.by = "genotype",
-                         colors_use = c("red", "yellow", "green", "blue", "purple"),
+                         colors_use = genotype_pal,
                          raster = F) +
     theme(axis.text = element_text(size = 8),
           axis.title = element_text(size = 10),
@@ -183,7 +199,7 @@ pca_plot <- function(dims){
                    label = F,
                    dims = dims,
                    group.by = "treatment",
-                   colors_use = JCO_Four()[1:3],
+                   colors_use = treatment_pal,
                    raster = F) +
     theme(axis.text = element_text(size = 8),
           axis.title = element_text(size = 10),
@@ -194,7 +210,7 @@ pca_plot <- function(dims){
                    label = F,
                    dims = dims,
                    group.by = "batch",
-                   colors_use = Dark2_Pal()[1:4],
+                   colors_use = batch_pal,
                    raster = F) +
     theme(axis.text = element_text(size = 8),
           axis.title = element_text(size = 10),
@@ -222,9 +238,39 @@ pca_plot(c(3,4))
 pca_plot(c(3,5))
 pca_plot(c(4,5))
 
-# Save object -------------------------------------------------------------
+# Save --------------------------------------------------------------------
 
-message2("Saving object")
+message2("Saving normalized data as BPCells on-disk matrix")
 
-saveRDS(obj,
-        file = paste0(data_out_dir, "obj.rds"))
+# Removed first if present, so a rerun doesn't fail on "Path already exists"
+# against a stale/incomplete directory from a previous attempt.
+bpcells_data_dir <- paste0(data_out_dir, "bpcells_data")
+if (dir.exists(bpcells_data_dir)) {
+  unlink(bpcells_data_dir, recursive = T)
+}
+
+write_matrix_dir(mat = obj[["RNA"]]$data,
+                 dir = bpcells_data_dir)
+
+message2("Saving metadata as RDS")
+
+saveRDS(obj@meta.data,
+        file = paste0(data_out_dir, "metadata.rds"))
+
+message2("Saving PCA reduction as RDS")
+
+saveRDS(obj[["pca"]],
+        file = paste0(data_out_dir, "pca.rds"))
+
+message2("Saving variable features as RDS")
+
+saveRDS(VariableFeatures(obj),
+        file = paste0(data_out_dir, "variable_features.rds"))
+
+# Downstream scripts should reconstruct the object from these on-disk pieces:
+#   data_mat <- open_matrix_dir(paste0(data_out_dir, "bpcells_data"))
+#   meta <- readRDS(paste0(data_out_dir, "metadata.rds"))
+#   pca <- readRDS(paste0(data_out_dir, "pca.rds"))
+#   obj <- CreateSeuratObject(counts = data_mat, meta.data = meta, assay = "RNA")
+#   obj[["RNA"]]$data <- data_mat
+#   obj[["pca"]] <- pca
