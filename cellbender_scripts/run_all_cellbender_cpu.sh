@@ -5,8 +5,8 @@
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 16
-#SBATCH --mem 30G
-#SBATCH --time 12:00:00
+#SBATCH --mem 64G
+#SBATCH --time 48:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a_%N.log
 #SBATCH --verbose
 #
