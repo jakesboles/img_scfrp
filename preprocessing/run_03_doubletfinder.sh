@@ -28,11 +28,10 @@ if [ -z "$SLURM_ARRAY_TASK_ID" ]; then
     echo "Submitting ${n} DoubletFinder jobs (1-${n})"
     # %20 -- genomics has handled comparable or higher concurrency
     # elsewhere in this repo without issue; adjust to taste.
-    exec sbatch --array=1-${n}%20 "$0"
+    exec sbatch --array=1-${n} "$0"
 fi
 
 module load R/4.4.0
-module load gcc/11.2.0
 module load hdf5/1.14.1-2-gcc-12.3.0
 
 Rscript /projects/b1169/boles/img_scfrp/preprocessing/03_doubletfinder.R
