@@ -217,13 +217,52 @@ fixed, not adopted quietly.
    `pca.rds` + `variable_features.rds` pieces, matching the BPCells
    standard above; directory renamed `data/04_sct_pca` → `data/04_norm_pca`
    to match (this does log-normalization via `NormalizeData()`, not
-   `SCTransform`). **Known dangling reference**: `05_integration_cca.R`,
-   `05_integration_harmony.R`, and `05_integration_harmony_2-3.R` still
-   hardcode reading the old `data/04_sct_pca/obj.rds` path — deliberately
-   left broken since those stages haven't been revisited yet; update them
-   to reconstruct from `04_norm_pca/`'s pieces before running them again.
+   `SCTransform`).
 
-Stages beyond `04` (`05_integration_*.R` onward, `deseq2/`, `wgcna/`) exist
+9. **`preprocessing/05_integration_harmony.R`** — the only integration
+   method kept (the user removed `05_integration_cca.R` and
+   `05_integration_harmony_2-3.R` as unneeded; `run_05_integration_cca.sh`
+   was deleted alongside it as a now-dangling job script). Loads `04`'s
+   normalized `data`/PCA/variable-features BPCells/RDS pieces, plus a
+   **real raw counts matrix pulled from `02_qc.R`'s `data/02_qc/bpcells`**
+   (`04` never re-saves counts of its own — its cell set is identical to
+   `02`'s filtered set, so `02`'s bpcells directory is still the source of
+   truth for counts at this point) — checked/reordered to `04`'s cell
+   order with the same hard-`stop()`-on-mismatch caution `04` uses for its
+   own 02/03 reconciliation, rather than assumed. **Splits the RNA assay
+   by the unified `sample` column (60 levels), not `pool_dir`**, before
+   `IntegrateLayers(method = "HarmonyIntegration")` — an explicit choice
+   the user made after being shown the tradeoff via `AskUserQuestion`
+   (splitting by `pool_dir` would additionally have corrected for any
+   technical difference between `iMG1`'s and `iMG1_redo`'s captures of the
+   same sample; splitting by `sample` does not, since both captures share
+   that value and land in the same integration layer). **Don't change this
+   split-by variable without asking first** — same standing rule as `03`'s
+   doublet-rate caveat. Computes a pre-integration UMAP (off `pca`) and a
+   post-integration UMAP (off the new `harmony` reduction, `dims = 1:10`
+   throughout, matching this project's established PC count) for a
+   before/after comparison, both faceted the same way as `04`'s PCA plots
+   (`condition`/`genotype`/`treatment`/`batch` — fixed a bug inherited from
+   the old placeholder script, which grouped the first panel by the
+   60-level `sample` while only supplying a 15-color palette; the
+   15-level `condition` is this project's established stand-in for that
+   panel). **Writes BPCells counts (`bpcells_counts`) and normalized data
+   (`bpcells_data`) matrices, `metadata.rds`, `harmony.rds`, and
+   `harmony_umap.rds` to `data/05_integration/`** — both matrices are
+   written (not just `data`, as `04` does) specifically so `06_clustering.R`/
+   `06b_clustering_markers.R`, `wgcna.R`, and `deseq2_final.R` (which needs
+   real raw counts for `AggregateExpression(slot = "counts")` pseudobulk)
+   can all build directly off this one stage's output without reaching
+   further back. **Known dangling reference**: `06_clustering.R`,
+   `06b_clustering_markers.R`, `deseq2_final.R`, and `wgcna.R` still
+   hardcode reading a single monolithic `data/05_integration/harmony_obj.rds`
+   (or, for `06b`, `data/06_clustering/clustered_integrated_obj.rds`) via
+   one big `saveRDS()`/`readRDS()` — deliberately left as-is since those
+   stages haven't been revisited yet; update them to reconstruct from
+   `05_integration/`'s BPCells/RDS pieces (per the standing BPCells
+   convention above) before running them again.
+
+Stages beyond `05` (`06_clustering.R` onward, `deseq2*.R`, `wgcna*.R`) exist
 in the repo as placeholders/drafts carried over from template repos but
 haven't been worked on yet in this session.
 
@@ -382,12 +421,20 @@ anything about sequencing batch structure that doesn't care about the
   matters for the analysis.
 - Root-level `jobs/`, `deseq2/`, `wgcna/` duplicate content already present
   under `preprocessing/` — worth cleaning up at some point.
-- Stages `05` (`05_integration_cca.R`/`05_integration_harmony.R`/
-  `05_integration_harmony_2-3.R`) onward are untouched, and currently
-  broken as written — they still hardcode reading the old
-  `data/04_sct_pca/obj.rds` path, which no longer exists now that `04`
-  writes separate BPCells/RDS pieces to `data/04_norm_pca/`. Update their
-  read step before running them.
+- Stages `06` onward (`06_clustering.R`, `06b_clustering_markers.R`,
+  `deseq2*.R`, `wgcna*.R`) are untouched, and currently broken as written —
+  they still hardcode reading a single monolithic
+  `data/05_integration/harmony_obj.rds` (or, for `06b`,
+  `data/06_clustering/clustered_integrated_obj.rds`) via one big
+  `saveRDS()`/`readRDS()`, which no longer exists now that `05` writes
+  separate BPCells/RDS pieces to `data/05_integration/`. Update their read
+  step (and any `06`-onward save step, once revisited) to the BPCells
+  pattern before running them again.
+- `05_integration_harmony.R` splits by the unified `sample` column (60
+  levels) for Harmony integration, not `pool_dir` — an explicit, informed
+  choice the user made after being shown the tradeoff (see the `05` pipeline
+  entry above). Worth remembering if `iMG1`/`iMG1_redo` batch structure
+  ever looks under-corrected in the integrated UMAP.
 - **Standing instruction from the user (2026 session)**: no need to
   proactively watch/monitor PRs for CI status or reviews going forward —
   the user communicates directly in chat instead. Don't spend turns
