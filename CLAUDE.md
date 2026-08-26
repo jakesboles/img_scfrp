@@ -254,24 +254,77 @@ fixed, not adopted quietly.
    real raw counts for `AggregateExpression(slot = "counts")` pseudobulk)
    can all build directly off this one stage's output without reaching
    further back. **Known dangling reference**: `06_clustering.R`,
-   `06b_clustering_markers.R`, `deseq2_final.R`, and `wgcna.R` still
-   hardcode reading a single monolithic `data/05_integration/harmony_obj.rds`
-   (or, for `06b`, `data/06_clustering/clustered_integrated_obj.rds`) via
-   one big `saveRDS()`/`readRDS()` — deliberately left as-is since those
-   stages haven't been revisited yet; update them to reconstruct from
+   `06b_clustering_markers.R`, and `deseq2/deseq2.R` still hardcode reading
+   a single monolithic `data/05_integration/harmony_obj.rds` (or, for
+   `06b`, `data/06_clustering/clustered_integrated_obj.rds`) via one big
+   `saveRDS()`/`readRDS()` — deliberately left as-is since those stages
+   haven't been revisited yet; update them to reconstruct from
    `05_integration/`'s BPCells/RDS pieces (per the standing BPCells
-   convention above) before running them again.
+   convention above) before running them again. (`wgcna.R` was fixed to do
+   this — see below.)
 
-Stages beyond `05` (`06_clustering.R` onward, `deseq2*.R`, `wgcna*.R`) exist
-in the repo as placeholders/drafts carried over from template repos but
-haven't been worked on yet in this session.
+10. **`wgcna/wgcna.R`, `wgcna/wgcna_stats.R`, `wgcna/wgcna_viz.R`,
+    `wgcna/wgcna_clusterprofiler.R`** — consensus hdWGCNA network on the
+    whole-cohort object (one network per `batch`, reconciled into one
+    consensus network — kept consistent with `05`'s own choice to
+    integrate at `sample`, not `pool_dir`, granularity: don't introduce a
+    finer `pool_dir`/iMG1-vs-iMG1_redo split here that upstream integration
+    didn't make either). `wgcna.R` loads `05_integration_harmony.R`'s
+    BPCells/RDS pieces (not a monolithic `obj_consensus.rds`) plus
+    `04_norm_pca.R`'s `variable_features.rds` (needed for
+    `ScaleMetacells()`/`RunPCAMetacells()`, and not re-saved by `05`).
+    Builds metacells via `MetacellsByGroups()`, grouped by `sample` (not
+    `orig.ident` — identical value throughout this pipeline, but `sample`
+    is this project's documented name for it) plus `genotype`/`treatment`/
+    `batch`/`condition` for convenience (redundant with `sample` for
+    partitioning, since each sample implies exactly one of each, but
+    carried through so they land as real columns on the metacell object's
+    own metadata). Fixed a stale `reduction = 'harmony_pca'` (05 actually
+    saves the reduction as `"harmony"`) and the same 60-level-`sample`
+    -vs-15-color-palette bug already fixed in `05` (metacell UMAP now
+    grouped by `condition`). **Only saves what this stage adds** —
+    `misc_wgcna_consensus.rds` (hdWGCNA's own network/module/eigengene
+    payload; metacell/module-scale, not cell x gene-matrix scale, so one
+    RDS is appropriate, same reasoning as `pca.rds`/`harmony.rds`
+    elsewhere) and `metadata.rds` (with `ModuleExprScore()`'s per-cell
+    module score columns attached) — counts/data/harmony/harmony_umap are
+    unchanged from `05`'s cell set, so downstream scripts reach back into
+    `data/05_integration/` directly rather than have them re-saved here.
+    `wgcna_stats.R` (UCell module scoring, kNN-smoothed over `harmony`,
+    genotype x treatment `lmer` models with a `batch` random intercept,
+    `emmeans`/`multcomp` post-hoc letters) reconstructs its own object from
+    `05`'s counts (materialized to `dgCMatrix` before `AddModuleScore_UCell`
+    — same "materialize before handing to a non-BPCells-aware tool"
+    caution as `03_doubletfinder.R`) and recomputes UCell scores itself
+    from `wgcna.R`'s `module_members_consensus.csv`, rather than reusing
+    hdWGCNA's own internal module scores — dropped a chunk of dead code
+    past the original script's working section that referenced an
+    undefined `modules` variable (a leftover half-finished edit). Fixed
+    the same `orig.ident`-vs-`sample` and `harmony_pca`-vs-`harmony`
+    naming issues here too. `wgcna_viz.R` (module radar plot,
+    module-module correlogram, per-sample module eigengene dot/violin
+    plots) reconstructs from `05`'s pieces plus `wgcna.R`'s
+    `metadata.rds`/`misc_wgcna_consensus.rds`, explicitly setting
+    `obj@misc$active_wgcna <- "wgcna_consensus"` since that's normally set
+    automatically by `SetupForWGCNA()` and needs to be replicated by hand
+    on a manually-reconstructed object. `wgcna_clusterprofiler.R`
+    (`clusterProfiler::enricher()` pathway enrichment per module, against
+    combined MSigDB C2 canonical-pathway + C5 GO gene sets) only depends
+    on `tab_data/wgcna/module_members_consensus.csv` — no object
+    reconstruction needed, unchanged from its pre-cleanup version.
 
-**Stale duplicates**: `jobs/`, `deseq2/`, and `wgcna/` at the repo root
-contain older copies of files that now also live under `preprocessing/`
-(from an earlier reorganization commit). Only the `preprocessing/` copies
-have been touched/maintained — the root-level duplicates are likely dead
-weight worth cleaning up, but haven't been touched since it wasn't asked
-for.
+Stages beyond `05`/`wgcna` (`06_clustering.R` onward, `deseq2/deseq2.R`)
+exist in the repo as placeholders/drafts carried over from template repos
+but haven't been worked on yet in this session.
+
+**Stale duplicates**: `jobs/` at the repo root still contains an older,
+untouched copy of several `.sh` job scripts that now also live under
+`preprocessing/`/`wgcna/` — dead weight worth cleaning up eventually, but
+not touched since it wasn't asked for. (`deseq2/` and `wgcna/` at the repo
+root are, as of the user's own reorganization commit, the *canonical*
+locations for those two workflows — the `preprocessing/deseq2*.R`/
+`preprocessing/wgcna*.R` copies CLAUDE.md previously flagged as the
+maintained ones were deleted in that same commit; don't resurrect them.)
 
 ## Metadata schema, stage by stage
 
@@ -419,17 +472,20 @@ anything about sequencing batch structure that doesn't care about the
 - `03_doubletfinder.R`'s doublet-rate formula likely underestimates the
   true rate for this multiplexed design (see caveat above) — revisit if it
   matters for the analysis.
-- Root-level `jobs/`, `deseq2/`, `wgcna/` duplicate content already present
-  under `preprocessing/` — worth cleaning up at some point.
+- Root-level `jobs/` still duplicates several `.sh` job scripts that now
+  also live under `preprocessing/`/`wgcna/` — worth cleaning up at some
+  point. (`deseq2/` and `wgcna/` are no longer duplicates — see the note
+  at the end of the pipeline-stages section above.)
 - Stages `06` onward (`06_clustering.R`, `06b_clustering_markers.R`,
-  `deseq2*.R`, `wgcna*.R`) are untouched, and currently broken as written —
-  they still hardcode reading a single monolithic
+  `deseq2/deseq2.R`) are untouched, and currently broken as written — they
+  still hardcode reading a single monolithic
   `data/05_integration/harmony_obj.rds` (or, for `06b`,
   `data/06_clustering/clustered_integrated_obj.rds`) via one big
   `saveRDS()`/`readRDS()`, which no longer exists now that `05` writes
   separate BPCells/RDS pieces to `data/05_integration/`. Update their read
   step (and any `06`-onward save step, once revisited) to the BPCells
-  pattern before running them again.
+  pattern before running them again. (`wgcna/` was already updated to this
+  pattern — see the pipeline-stages entry above.)
 - `05_integration_harmony.R` splits by the unified `sample` column (60
   levels) for Harmony integration, not `pool_dir` — an explicit, informed
   choice the user made after being shown the tradeoff (see the `05` pipeline
