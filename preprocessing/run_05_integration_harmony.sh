@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --account b1042
-#SBATCH --partition genomics
+#SBATCH --account b1169
+#SBATCH --partition b1169
 #SBATCH --job-name 05_integration_harmony
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 8
@@ -15,7 +15,6 @@
 # Adjust if the actual run needs more.
 
 module load R/4.4.0
-module load gcc/11.2.0
 module load hdf5/1.14.1-2-gcc-12.3.0
 
 Rscript /projects/b1169/boles/img_scfrp/preprocessing/05_integration_harmony.R

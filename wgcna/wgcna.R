@@ -27,7 +27,7 @@ obj$dummy_group <- 1
 obj <- SetupForWGCNA(obj, 
                      gene_select = "fraction", 
                      fraction = 0.01,  
-                     wgcna_name = "wgcna")
+                     wgcna_name = "wgcna_consensus")
 
 # Construct meta cells ----------------------------------------------------
 
@@ -46,7 +46,7 @@ obj <- NormalizeMetacells(obj)
 obj <- ScaleMetacells(obj,
                       features = VariableFeatures(obj))
 obj <- RunPCAMetacells(obj,
-              features = VariableFeatures(obj))
+                       features = VariableFeatures(obj))
 obj <- RunHarmonyMetacells(obj,
                            group.by.vars = "orig.ident")
 obj <- RunUMAPMetacells(obj,
@@ -57,7 +57,7 @@ p1 <- DimPlotMetacells(obj,
                        # reduction = "umap",
                        group.by = "sample",
                        cols = DiscretePalette_scCustomize(num_colors = 15,
-                                                                palette = "varibow"),
+                                                          palette = "varibow"),
                        raster = F) +
   theme(axis.text = element_text(size = 8),
         axis.title = element_text(size = 10),
@@ -101,17 +101,18 @@ ggsave(p,
 
 # Setup expression matrix -------------------------------------------------
 
-obj <- SetDatExpr(
+obj <- SetMultiExpr(
   obj,
   group_name = "1", # the name of the group of interest in the group.by column
   group.by='dummy_group', # the metadata column containing the cell type info. This same column should have also been used in MetacellsByGroups
   assay = 'RNA', # using RNA assay
   layer = 'data', # using normalized data
+  multi.group.by = "batch"
 )
 
 # Test soft powers --------------------------------------------------------
 
-obj <- TestSoftPowers(
+obj <- TestSoftPowersConsensus(
   obj,
   networkType = 'signed' # you can also use "unsigned" or "signed hybrid"
 )
@@ -119,38 +120,39 @@ obj <- TestSoftPowers(
 # plot the results:
 plot_list <- PlotSoftPowers(obj)
 
-# # assemble with patchwork
-# consensus_groups <- unique(obj$batch)
-# p_list <- lapply(1:length(consensus_groups), function(i){
-#   cur_group <- consensus_groups[[i]]
-#   plot_list[[i]][[1]] + ggtitle(paste0('Batch: ', cur_group)) + theme(plot.title=element_text(hjust=0.5))
-# })
+# assemble with patchwork
+consensus_groups <- unique(obj$batch)
+p_list <- lapply(1:length(consensus_groups), function(i){
+  cur_group <- consensus_groups[[i]]
+  plot_list[[i]][[1]] + ggtitle(paste0('Batch: ', cur_group)) + theme(plot.title=element_text(hjust=0.5))
+})
 
-png(paste0(plots_dir, "soft_powers.png"), 
+png(paste0(plots_dir, "soft_powers_consensus.png"), 
     height = 8, width = 8,
-    units = "in", 
-    res = 600)
-wrap_plots(plot_list, ncol=2)
+    res = 600,
+    units = "in")
+wrap_plots(p_list, ncol=2)
 dev.off()
 
 power_table <- GetPowerTable(obj)
 write.csv(power_table,
-          file = paste0(tab_out_dir, "soft_powers.csv"))
+          file = paste0(tab_out_dir, "soft_powers_consensus.csv"))
 
 # Construct TOM -----------------------------------------------------------
 
 obj <- ConstructNetwork(
   obj,
-  tom_name = 'tom', # name of the topoligical overlap matrix written to disk
+  tom_name = 'tom_consensus', # name of the topoligical overlap matrix written to disk
   overwrite_tom = T,
   tom_outdir = paste0(data_out_dir),
+  consensus = T
 )
 
-png(paste0(plots_dir, "dendrogram.png"),
+png(paste0(plots_dir, "dendrogram_consensus.png"), 
     height = 8, width = 8,
-    units = "in", 
-    res = 600)
-PlotDendrogram(obj, main= "Dendrogram")
+    res = 600,
+    units = "in")
+PlotDendrogram(obj, main= "Dendrogram (consensus)")
 dev.off()
 
 # TOM <- GetTOM(obj)
@@ -166,7 +168,7 @@ obj <- ModuleEigengenes(
 
 hMEs <- GetMEs(obj)
 write.csv(hMEs, 
-        file = paste0(tab_out_dir, "hmes.csv"))
+          file = paste0(tab_out_dir, "hmes_consensus.csv"))
 
 obj <- ModuleConnectivity(
   obj,
@@ -175,10 +177,10 @@ obj <- ModuleConnectivity(
 )
 
 p <- PlotKMEs(obj, ncol=4, text_size = 4)
-png(paste0(plots_dir, "kmes.png"), 
+png(paste0(plots_dir, "kmes_consensus.png"), 
     height = 12, width = 12,
-    units = "in",
-    res = 600)
+    res = 600,
+    units = "in")
 print(p)
 dev.off()
 
@@ -198,7 +200,7 @@ plot_list <- ModuleFeaturePlot(
 )
 
 # stitch together with patchwork
-png(paste0(plots_dir, "eigengenes_umap.png"), 
+png(paste0(plots_dir, "eigengenes_umap_consensus.png"), 
     height = 8, width = 8,
     res = 600,
     units = "in")
@@ -215,7 +217,7 @@ plot_list <- ModuleFeaturePlot(
 )
 
 # stitch together with patchwork
-png(paste0(plots_dir, "module_scores_umap.png"), 
+png(paste0(plots_dir, "module_scores_umap_consensus.png"), 
     height = 8, width = 8,
     units = "in",
     res = 600)
@@ -223,13 +225,13 @@ wrap_plots(plot_list, ncol=4)
 dev.off()
 
 # get module membership for each gene and write to csv
-mods <- obj@misc[["wgcna"]][["wgcna_modules"]]
+mods <- obj@misc[["wgcna_consensus"]][["wgcna_modules"]]
 write.csv(mods,
-          file = paste0(tab_out_dir, "module_members.csv"))
+          file = paste0(tab_out_dir, "module_members_consensus.csv"))
 
 
 # save object -------------------------------------------------------------
 
 saveRDS(obj,
-        file = paste0(data_out_dir, "obj.rds"))
+        file = paste0(data_out_dir, "obj_consensus.rds"))
 
