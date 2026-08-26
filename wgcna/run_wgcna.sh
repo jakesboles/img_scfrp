@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --account p31535
-#SBATCH --partition genhimem
+#SBATCH --account b1169
+#SBATCH --partition b1169
 #SBATCH --job-name wgcna_consensus
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 16

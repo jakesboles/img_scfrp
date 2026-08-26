@@ -49,8 +49,11 @@ po/*~
 rsconnect/
 
 fastq/*
-deseq2/*
-wgcna/*
+deseq2/*.csv
+deseq2/*.rds
+wgcna/*.csv
+wgcna/*.png
+wgcna/*.rds
 preprocessing/*
 tab_data/*
 logs/*

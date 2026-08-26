@@ -35,13 +35,13 @@ message2 <- function(text){
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-data_out_dir <- "data/wgcna/"
+data_out_dir <- "wgcna/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)
 
-plots_dir <- "plots/wgcna/"
+plots_dir <- "wgcna/"
 dir.create(plots_dir, showWarnings = F, recursive = T)
 
-tab_out_dir <- "tab_data/wgcna/"
+tab_out_dir <- "wgcna/"
 dir.create(tab_out_dir, showWarnings = F, recursive = T)
 
 # Read in 05's integrated object ---------------------------------------------
