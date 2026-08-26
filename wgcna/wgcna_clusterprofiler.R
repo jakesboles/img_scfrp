@@ -6,8 +6,10 @@ library(msigdbr)
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-plots_dir <- "plots/wgcna/"
-tab_dir <- "tab_data/wgcna/"
+# wgcna.R writes its own outputs directly to wgcna/ (not data/plots/
+# tab_data/wgcna/).
+plots_dir <- "wgcna/"
+tab_dir <- "wgcna/"
 
 # Prep gene sets ----------------------------------------------------------
 
@@ -28,7 +30,7 @@ t2g <- rbind(go_t2g, m_t2g)
 
 # Get module members & run analyses ------------------------------------------------------
 
-df <- read.csv("tab_data/wgcna/module_members_consensus.csv")
+df <- read.csv(paste0(tab_dir, "module_members_consensus.csv"))
 
 background <- df$gene_name %>% unique()
 
