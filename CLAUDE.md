@@ -282,20 +282,39 @@ fixed, not adopted quietly.
     own metadata). Fixed a stale `reduction = 'harmony_pca'` (05 actually
     saves the reduction as `"harmony"`) and the same 60-level-`sample`
     -vs-15-color-palette bug already fixed in `05` (metacell UMAP now
-    grouped by `condition`). **Only saves what this stage adds** —
-    `misc_wgcna_consensus.rds` (hdWGCNA's own network/module/eigengene
-    payload; metacell/module-scale, not cell x gene-matrix scale, so one
-    RDS is appropriate, same reasoning as `pca.rds`/`harmony.rds`
-    elsewhere) and `metadata.rds` (with `ModuleExprScore()`'s per-cell
-    module score columns attached) — counts/data/harmony/harmony_umap are
-    unchanged from `05`'s cell set, so downstream scripts reach back into
-    `data/05_integration/` directly rather than have them re-saved here.
+    grouped by `condition`). **hdWGCNA isn't BPCells-aware**: unlike
+    Seurat's own `NormalizeData()`/`ScaleData()`/`RunPCA()`/
+    `IntegrateLayers()` (which do operate directly on BPCells matrices, as
+    `04`/`05` already demonstrate), `SetupForWGCNA(gene_select =
+    "fraction")` crashes with `invalid subscript type 'S4'` against a lazy
+    `IterableMatrix` — counts/data are materialized to `dgCMatrix` right
+    after loading, before anything hdWGCNA-specific runs (same
+    "materialize before handing to a non-BPCells-aware tool" caution as
+    `03_doubletfinder.R`, just applied to the whole assay here since
+    hdWGCNA's pipeline touches it throughout, not one step). **Only saves
+    what this stage adds** — `misc_wgcna_consensus.rds` (hdWGCNA's own
+    network/module/eigengene payload; metacell/module-scale, not cell x
+    gene-matrix scale, so one RDS is appropriate, same reasoning as
+    `pca.rds`/`harmony.rds` elsewhere) and `metadata.rds` (with
+    `ModuleExprScore()`'s per-cell module score columns attached) —
+    counts/data/harmony/harmony_umap are unchanged from `05`'s cell set,
+    so downstream scripts reach back into `data/05_integration/` directly
+    rather than have them re-saved here. **Output directory departs from
+    the rest of the project's `data/<stage>/`/`plots/<stage>/`/
+    `tab_data/<stage>/` split**: per the user's own edit, `wgcna.R`'s
+    `data_out_dir`/`plots_dir`/`tab_out_dir` are all just `wgcna/` — every
+    CSV/PNG/RDS this stage produces lands directly alongside the scripts
+    in `wgcna/`, git-ignored by extension (`wgcna/*.csv`, `wgcna/*.png`,
+    `wgcna/*.rds` in `.gitignore`) rather than under a separate ignored
+    tree. `wgcna_stats.R`/`wgcna_viz.R`/`wgcna_clusterprofiler.R` were
+    updated to match so they can still find `wgcna.R`'s output — if this
+    convention changes again, all four scripts' path variables need to
+    move together.
     `wgcna_stats.R` (UCell module scoring, kNN-smoothed over `harmony`,
     genotype x treatment `lmer` models with a `batch` random intercept,
     `emmeans`/`multcomp` post-hoc letters) reconstructs its own object from
     `05`'s counts (materialized to `dgCMatrix` before `AddModuleScore_UCell`
-    — same "materialize before handing to a non-BPCells-aware tool"
-    caution as `03_doubletfinder.R`) and recomputes UCell scores itself
+    — same reasoning as above) and recomputes UCell scores itself
     from `wgcna.R`'s `module_members_consensus.csv`, rather than reusing
     hdWGCNA's own internal module scores — dropped a chunk of dead code
     past the original script's working section that referenced an
@@ -310,8 +329,8 @@ fixed, not adopted quietly.
     on a manually-reconstructed object. `wgcna_clusterprofiler.R`
     (`clusterProfiler::enricher()` pathway enrichment per module, against
     combined MSigDB C2 canonical-pathway + C5 GO gene sets) only depends
-    on `tab_data/wgcna/module_members_consensus.csv` — no object
-    reconstruction needed, unchanged from its pre-cleanup version.
+    on `wgcna/module_members_consensus.csv` — no object reconstruction
+    needed, otherwise unchanged from its pre-cleanup version.
 
 Stages beyond `05`/`wgcna` (`06_clustering.R` onward, `deseq2/deseq2.R`)
 exist in the repo as placeholders/drafts carried over from template repos
@@ -459,6 +478,25 @@ anything about sequencing batch structure that doesn't care about the
   otherwise-successful runs with `UnicodeDecodeError` — cosmetic, fixed by
   exporting `LC_ALL=en_US.UTF-8`/`LANG=en_US.UTF-8` (this cluster's default
   locale is ASCII).
+- **hdWGCNA + BPCells incompatibility**: `wgcna.R`'s
+  `SetupForWGCNA(gene_select = "fraction")` crashed with `Error in
+  rownames(x)[i] : invalid subscript type 'S4'` the first time it ran
+  against a BPCells-backed assay. Root cause: hdWGCNA's internal gene-
+  selection code indexes the assay with plain base-R subsetting, which a
+  lazy BPCells `IterableMatrix` doesn't support the way a real
+  `dgCMatrix`/`matrix` does — unlike Seurat's own `NormalizeData()`/
+  `ScaleData()`/`RunPCA()`/`IntegrateLayers()`, which `04_norm_pca.R`/
+  `05_integration_harmony.R` already run directly against BPCells matrices
+  without issue, hdWGCNA was never written with lazy/on-disk matrices in
+  mind. Fixed by materializing both `counts` and `data` to `dgCMatrix`
+  right after loading in `wgcna.R`, before any hdWGCNA call — full-cohort
+  scale here (~40-60k cells) is a perfectly ordinary in-memory sparse
+  matrix for a single-cell analysis (hdWGCNA's normal expected input); the
+  BPCells backing was the atypical part, not the memory cost of
+  materializing. If a similar `invalid subscript type 'S4'` (or similar
+  BPCells-shaped) error shows up in `wgcna_stats.R`/`wgcna_viz.R` or any
+  future stage that hands a BPCells matrix to a non-Seurat-native tool,
+  this is the same class of fix.
 
 ## Open items / things worth revisiting
 

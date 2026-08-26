@@ -20,8 +20,11 @@ suppressMessages({
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-tab_dir <- "tab_data/wgcna/"
-plots_dir <- "plots/wgcna/"
+# wgcna.R writes its own outputs directly to wgcna/ (not data/plots/
+# tab_data/wgcna/) -- matched here so module_members_consensus.csv is
+# actually found.
+tab_dir <- "wgcna/"
+plots_dir <- "wgcna/"
 
 # Read in 05's integrated object ---------------------------------------------
 

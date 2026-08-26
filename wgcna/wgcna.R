@@ -58,6 +58,23 @@ harmony_umap <- readRDS("data/05_integration/harmony_umap.rds")
 # needed below by ScaleMetacells()/RunPCAMetacells(), so pulled from there.
 var_features <- readRDS("data/04_norm_pca/variable_features.rds")
 
+# hdWGCNA isn't written with BPCells/lazy-matrix awareness in mind (unlike
+# Seurat's own NormalizeData()/ScaleData()/RunPCA()/IntegrateLayers(),
+# which do support BPCells directly, as 04_norm_pca.R/05_integration_
+# harmony.R already demonstrate) -- SetupForWGCNA()'s gene_select =
+# "fraction" step walks the assay with base-R indexing that a lazy
+# IterableMatrix doesn't support, failing with "invalid subscript type
+# 'S4'". Same "materialize before handing to a non-BPCells-aware tool"
+# caution already established for DoubletFinder (03_doubletfinder.R) and
+# UCell (wgcna_stats.R), applied here to the whole assay since hdWGCNA's
+# pipeline (gene selection, metacell construction, network/TOM) touches it
+# throughout, not just at this one step. Full-cohort scale here is a
+# standard in-memory sparse matrix for a single-cell analysis (this is
+# hdWGCNA's normal expected input) -- BPCells backing was the atypical
+# part, not the memory cost of materializing.
+counts_mat <- as(counts_mat, "dgCMatrix")
+data_mat <- as(data_mat, "dgCMatrix")
+
 obj <- CreateSeuratObject(counts = counts_mat, meta.data = meta, assay = "RNA")
 obj[["RNA"]]$data <- data_mat
 obj[["harmony"]] <- harmony
