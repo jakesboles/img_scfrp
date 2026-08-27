@@ -55,7 +55,6 @@ wgcna/*.csv
 wgcna/*.png
 wgcna/*.rds
 wgcna/*.rda
-preprocessing/*
 tab_data/*
 logs/*
 cellranger/*
