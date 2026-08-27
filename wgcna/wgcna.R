@@ -81,6 +81,8 @@ obj[["harmony"]] <- harmony
 obj[["harmony_umap"]] <- harmony_umap
 VariableFeatures(obj) <- var_features
 
+obj <- ScaleData(obj)
+
 obj$dummy_group <- 1
 
 # Set up WGCNA ------------------------------------------------------------

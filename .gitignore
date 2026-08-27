@@ -54,6 +54,7 @@ deseq2/*.rds
 wgcna/*.csv
 wgcna/*.png
 wgcna/*.rds
+wgcna/*.rda
 preprocessing/*
 tab_data/*
 logs/*
