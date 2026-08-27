@@ -249,21 +249,48 @@ fixed, not adopted quietly.
    panel). **Writes BPCells counts (`bpcells_counts`) and normalized data
    (`bpcells_data`) matrices, `metadata.rds`, `harmony.rds`, and
    `harmony_umap.rds` to `data/05_integration/`** — both matrices are
-   written (not just `data`, as `04` does) specifically so `06_clustering.R`/
-   `06b_clustering_markers.R`, `wgcna.R`, and `deseq2_final.R` (which needs
-   real raw counts for `AggregateExpression(slot = "counts")` pseudobulk)
-   can all build directly off this one stage's output without reaching
-   further back. **Known dangling reference**: `06_clustering.R`,
-   `06b_clustering_markers.R`, and `deseq2/deseq2.R` still hardcode reading
-   a single monolithic `data/05_integration/harmony_obj.rds` (or, for
-   `06b`, `data/06_clustering/clustered_integrated_obj.rds`) via one big
-   `saveRDS()`/`readRDS()` — deliberately left as-is since those stages
-   haven't been revisited yet; update them to reconstruct from
-   `05_integration/`'s BPCells/RDS pieces (per the standing BPCells
-   convention above) before running them again. (`wgcna.R` was fixed to do
-   this — see below.)
+   written (not just `data`, as `04` does) specifically so `06_qc2.R`,
+   `wgcna.R`, and `deseq2/deseq2.R` (which needs real raw counts for
+   `AggregateExpression(slot = "counts")` pseudobulk) can all build
+   directly off this one stage's output without reaching further back.
+   **Known dangling reference**: `deseq2/deseq2.R` still
+   hardcodes reading a single monolithic `data/05_integration/
+   harmony_obj.rds` via one big `saveRDS()`/`readRDS()` — deliberately left
+   as-is since that stage hasn't been revisited yet; update it to
+   reconstruct from `05_integration/`'s BPCells/RDS pieces (per the
+   standing BPCells convention above) before running it again. (`wgcna.R`
+   was fixed to do this — see below. The old `06_clustering.R`/
+   `06b_clustering_markers.R` placeholders that used to have this same
+   problem were removed by the user and replaced by `06_qc2.R` below.)
 
-10. **`wgcna/wgcna.R`, `wgcna/wgcna_stats.R`, `wgcna/wgcna_viz.R`,
+10. **`preprocessing/06_qc2.R`** — a second QC pass, addressing
+    `03_doubletfinder.R`'s own documented caveat that per-sample
+    DoubletFinder can't catch doublets formed between two *different*
+    samples sharing a GEM well. Loads `05`'s BPCells/RDS pieces, clusters
+    on `05`'s own `harmony` reduction (`resolution = 2`, same as the old
+    `06_clustering.R`), and plots per-cluster `DF.adj` composition
+    (`clusters_by_doublets.png`) so doublet-enriched clusters can be
+    spotted **by eye** — this is a manual QC judgment call, not
+    programmatic, and the resulting cluster numbers are specific to that
+    exact clustering (stored as `doublet_qc_cluster`, not `cluster`, to
+    avoid colliding with any later, more meaningful clustering column).
+    Removes those *whole clusters* (not just individual `DF.adj ==
+    "Doublet"` cells) via `subset()`, logging what was removed to
+    `removed_doublet_clusters.csv`, then repeats `04`/`05`'s
+    normalize→PCA→Harmony steps on the filtered cell set and saves in the
+    same BPCells pattern as `05` (`bpcells_counts`, `bpcells_data`,
+    `metadata.rds`, `harmony.rds`, `harmony_umap.rds`) plus its own fresh
+    `variable_features.rds` — `04`'s copy was selected against the
+    pre-filter cohort, so this stage needs its own rather than leaving
+    downstream users of the old one (like `wgcna.R`) working off a stale
+    gene selection basis. **Not yet adopted downstream**: `wgcna.R` and
+    `deseq2/deseq2.R` still read from `data/05_integration/`, not
+    `data/06_qc2/` — repoint them once this stage's output is trusted.
+    Meant to be run interactively (no `.sh` job script), matching
+    `02_qc.R`'s precedent for a script with an eyeballed QC decision in the
+    middle of it.
+
+11. **`wgcna/wgcna.R`, `wgcna/wgcna_stats.R`, `wgcna/wgcna_viz.R`,
     `wgcna/wgcna_clusterprofiler.R`** — consensus hdWGCNA network on the
     whole-cohort object (one network per `batch`, reconciled into one
     consensus network — kept consistent with `05`'s own choice to
@@ -332,9 +359,8 @@ fixed, not adopted quietly.
     on `wgcna/module_members_consensus.csv` — no object reconstruction
     needed, otherwise unchanged from its pre-cleanup version.
 
-Stages beyond `05`/`wgcna` (`06_clustering.R` onward, `deseq2/deseq2.R`)
-exist in the repo as placeholders/drafts carried over from template repos
-but haven't been worked on yet in this session.
+`deseq2/deseq2.R` exists in the repo as a placeholder/draft carried over
+from a template repo but hasn't been worked on yet in this session.
 
 **Stale duplicates**: `jobs/` at the repo root still contains an older,
 untouched copy of several `.sh` job scripts that now also live under
@@ -539,16 +565,18 @@ anything about sequencing batch structure that doesn't care about the
   also live under `preprocessing/`/`wgcna/` — worth cleaning up at some
   point. (`deseq2/` and `wgcna/` are no longer duplicates — see the note
   at the end of the pipeline-stages section above.)
-- Stages `06` onward (`06_clustering.R`, `06b_clustering_markers.R`,
-  `deseq2/deseq2.R`) are untouched, and currently broken as written — they
-  still hardcode reading a single monolithic
-  `data/05_integration/harmony_obj.rds` (or, for `06b`,
-  `data/06_clustering/clustered_integrated_obj.rds`) via one big
-  `saveRDS()`/`readRDS()`, which no longer exists now that `05` writes
-  separate BPCells/RDS pieces to `data/05_integration/`. Update their read
-  step (and any `06`-onward save step, once revisited) to the BPCells
-  pattern before running them again. (`wgcna/` was already updated to this
-  pattern — see the pipeline-stages entry above.)
+- `deseq2/deseq2.R` is untouched, and currently broken as written — it
+  still hardcodes reading a single monolithic
+  `data/05_integration/harmony_obj.rds` via one big `saveRDS()`/
+  `readRDS()`, which no longer exists now that `05` writes separate
+  BPCells/RDS pieces to `data/05_integration/`. Update its read step (and
+  its own save step, once revisited) to the BPCells pattern before running
+  it again. (`wgcna/` and `06_qc2.R` were already updated to this pattern
+  — see the pipeline-stages entries above.)
+- `06_qc2.R` (whole-cluster doublet removal + re-integration) exists but
+  isn't yet adopted downstream — `wgcna.R`/`deseq2/deseq2.R` still read
+  from `data/05_integration/`, not `data/06_qc2/`. Repoint them once
+  `06_qc2.R`'s output is trusted/finalized.
 - `05_integration_harmony.R` splits by the unified `sample` column (60
   levels) for Harmony integration, not `pool_dir` — an explicit, informed
   choice the user made after being shown the tradeoff (see the `05` pipeline
