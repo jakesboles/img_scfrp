@@ -1,14 +1,14 @@
 # Consensus hdWGCNA network on the whole-cohort integrated object: builds
 # metacells, constructs a co-expression network with a separate network per
 # `batch` reconciled into one consensus network, and computes module
-# eigengenes/scores. Loads 05_integration_harmony.R's BPCells/RDS pieces
-# (counts, normalized data, harmony reduction, harmony UMAP, metadata)
+# eigengenes/scores. Loads 06_qc2.R's BPCells/RDS pieces (counts, normalized
+# data, harmony reduction, harmony UMAP, metadata, variable features)
 # instead of a single monolithic obj_consensus.rds, and only re-saves what
-# THIS stage adds on top of 05's output (the hdWGCNA network/module data,
+# THIS stage adds on top of 06's output (the hdWGCNA network/module data,
 # and metadata with module scores attached) -- counts/data/harmony/
-# harmony_umap are unchanged from 05_integration.R's cell set, so
-# wgcna_stats.R/wgcna_viz.R reach back into data/05_integration/ directly
-# for those rather than having them re-saved here.
+# harmony_umap are unchanged from 06_qc2.R's cell set, so
+# wgcna_stats.R/wgcna_viz.R reach back into data/06_qc2/ directly for those
+# rather than having them re-saved here.
 #
 # hdWGCNA's own misc payload (network, module table, module eigengenes) is
 # metacell/module-scale (thousands of metacells x tens of modules), not
@@ -44,24 +44,24 @@ dir.create(plots_dir, showWarnings = F, recursive = T)
 tab_out_dir <- "wgcna/"
 dir.create(tab_out_dir, showWarnings = F, recursive = T)
 
-# Read in 05's integrated object ---------------------------------------------
+# Read in 06's integrated, doublet-cluster-filtered object -------------------
 
-message2("Reading in integrated object from 05_integration_harmony.R")
+message2("Reading in integrated object from 06_qc2.R")
 
-counts_mat <- open_matrix_dir("data/05_integration/bpcells_counts")
-data_mat <- open_matrix_dir("data/05_integration/bpcells_data")
-meta <- readRDS("data/05_integration/metadata.rds")
-harmony <- readRDS("data/05_integration/harmony.rds")
-harmony_umap <- readRDS("data/05_integration/harmony_umap.rds")
+counts_mat <- open_matrix_dir("data/06_qc2/bpcells_counts")
+data_mat <- open_matrix_dir("data/06_qc2/bpcells_data")
+meta <- readRDS("data/06_qc2/metadata.rds")
+harmony <- readRDS("data/06_qc2/harmony.rds")
+harmony_umap <- readRDS("data/06_qc2/harmony_umap.rds")
 
-# 05 doesn't re-save variable features (unchanged from 04_norm_pca.R) --
-# needed below by ScaleMetacells()/RunPCAMetacells(), so pulled from there.
-var_features <- readRDS("data/04_norm_pca/variable_features.rds")
+# 06_qc2.R saves its own fresh variable_features.rds (04's copy reflects
+# the pre-doublet-cluster-filter cohort).
+var_features <- readRDS("data/06_qc2/variable_features.rds")
 
 # hdWGCNA isn't written with BPCells/lazy-matrix awareness in mind (unlike
 # Seurat's own NormalizeData()/ScaleData()/RunPCA()/IntegrateLayers(),
 # which do support BPCells directly, as 04_norm_pca.R/05_integration_
-# harmony.R already demonstrate) -- SetupForWGCNA()'s gene_select =
+# harmony.R/06_qc2.R already demonstrate) -- SetupForWGCNA()'s gene_select =
 # "fraction" step walks the assay with base-R indexing that a lazy
 # IterableMatrix doesn't support, failing with "invalid subscript type
 # 'S4'". Same "materialize before handing to a non-BPCells-aware tool"
@@ -105,7 +105,7 @@ obj <- SetupForWGCNA(obj,
 obj <- MetacellsByGroups(
   seurat_obj = obj,
   group.by = c("dummy_group", "batch", "genotype", "treatment", "condition", "sample"),
-  reduction = 'harmony', # matches the reduction name 05_integration_harmony.R actually saves
+  reduction = 'harmony', # matches the reduction name 05/06_qc2 actually save
   k = 25, # nearest-neighbors parameter
   max_shared = 10, # maximum number of shared cells between two metacells
   ident.group = 'sample' # set the Idents of the metacell seurat object
@@ -128,7 +128,7 @@ obj <- RunUMAPMetacells(obj,
 # First panel groups by `condition` (15 levels), not the 60-level `sample`
 # -- the old version of this script grouped by `sample` while only
 # supplying a 15-color palette, the same mismatch already fixed in
-# 05_integration_harmony.R.
+# 05_integration_harmony.R/06_qc2.R.
 genotype_pal <- c("red", "yellow", "green", "blue", "purple")
 treatment_pal <- JCO_Four()[1:3]
 batch_pal <- Dark2_Pal()[1:4]
@@ -319,24 +319,24 @@ saveRDS(obj@misc[["wgcna_consensus"]],
 
 message2("Saving metadata (with module scores) as RDS")
 
-# This stage's own metadata, distinct from 05_integration/metadata.rds --
+# This stage's own metadata, distinct from 06_qc2/metadata.rds --
 # ModuleExprScore() above added per-cell module score/eigengene columns on
-# top of what 05 saved.
+# top of what 06_qc2 saved.
 saveRDS(obj@meta.data,
         file = paste0(data_out_dir, "metadata.rds"))
 
 # Downstream scripts should reconstruct the object from these on-disk
 # pieces -- counts/data/harmony/harmony_umap are unchanged from
-# 05_integration_harmony.R's cell set, so reach back there directly rather
-# than have this stage re-save them:
-#   counts_mat <- open_matrix_dir("data/05_integration/bpcells_counts")
-#   data_mat <- open_matrix_dir("data/05_integration/bpcells_data")
-#   harmony <- readRDS("data/05_integration/harmony.rds")
-#   harmony_umap <- readRDS("data/05_integration/harmony_umap.rds")
-#   meta <- readRDS("data/wgcna/metadata.rds")
+# 06_qc2.R's cell set, so reach back there directly rather than have this
+# stage re-save them:
+#   counts_mat <- open_matrix_dir("data/06_qc2/bpcells_counts")
+#   data_mat <- open_matrix_dir("data/06_qc2/bpcells_data")
+#   harmony <- readRDS("data/06_qc2/harmony.rds")
+#   harmony_umap <- readRDS("data/06_qc2/harmony_umap.rds")
+#   meta <- readRDS("wgcna/metadata.rds")
 #   obj <- CreateSeuratObject(counts = counts_mat, meta.data = meta, assay = "RNA")
 #   obj[["RNA"]]$data <- data_mat
 #   obj[["harmony"]] <- harmony
 #   obj[["harmony_umap"]] <- harmony_umap
-#   obj@misc[["wgcna_consensus"]] <- readRDS("data/wgcna/misc_wgcna_consensus.rds")
+#   obj@misc[["wgcna_consensus"]] <- readRDS("wgcna/misc_wgcna_consensus.rds")
 #   obj@misc$active_wgcna <- "wgcna_consensus"

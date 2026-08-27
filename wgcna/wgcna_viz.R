@@ -1,10 +1,10 @@
 # Visualizes the consensus WGCNA network built by wgcna.R: module radar
 # plot by genotype, module-module correlogram, and per-sample dot/violin
 # plots of module eigengene expression. Loads the whole-cohort object from
-# 05_integration_harmony.R's BPCells/RDS pieces plus wgcna.R's own
-# metadata.rds and misc_wgcna_consensus.rds (the hdWGCNA network/module
-# payload) -- not a monolithic data/wgcna/obj.rds, which no longer exists
-# now that wgcna.R saves separate pieces.
+# 06_qc2.R's BPCells/RDS pieces plus wgcna.R's own metadata.rds and
+# misc_wgcna_consensus.rds (the hdWGCNA network/module payload) -- not a
+# monolithic data/wgcna/obj.rds, which no longer exists now that wgcna.R
+# saves separate pieces.
 
 suppressMessages({
   library(hdWGCNA)
@@ -21,15 +21,16 @@ setwd("/projects/b1169/boles/img_scfrp")
 plots_dir <- "wgcna/"
 dir.create(plots_dir, showWarnings = F, recursive = T)
 
-# Read in the integrated object + wgcna.R's network data ---------------------
+# Read in 06's integrated, doublet-cluster-filtered object + wgcna.R's
+# network data ----------------------------------------------------------
 
-counts_mat <- open_matrix_dir("data/05_integration/bpcells_counts")
-data_mat <- open_matrix_dir("data/05_integration/bpcells_data")
-harmony <- readRDS("data/05_integration/harmony.rds")
-harmony_umap <- readRDS("data/05_integration/harmony_umap.rds")
+counts_mat <- open_matrix_dir("data/06_qc2/bpcells_counts")
+data_mat <- open_matrix_dir("data/06_qc2/bpcells_data")
+harmony <- readRDS("data/06_qc2/harmony.rds")
+harmony_umap <- readRDS("data/06_qc2/harmony_umap.rds")
 
 # wgcna.R's own metadata (module scores from ModuleExprScore() attached on
-# top of 05_integration/metadata.rds).
+# top of 06_qc2/metadata.rds).
 meta <- readRDS("wgcna/metadata.rds")
 
 obj <- CreateSeuratObject(counts = counts_mat, meta.data = meta, assay = "RNA")
