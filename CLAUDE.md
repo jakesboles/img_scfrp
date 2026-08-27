@@ -497,6 +497,31 @@ anything about sequencing batch structure that doesn't care about the
   BPCells-shaped) error shows up in `wgcna_stats.R`/`wgcna_viz.R` or any
   future stage that hands a BPCells matrix to a non-Seurat-native tool,
   this is the same class of fix.
+- **hdWGCNA + Seurat v5 `GetAssayData(slot=...)` incompatibility (separate
+  from the BPCells issue above)**: after the materialization fix, `wgcna.R`
+  hit a second, unrelated crash inside `MetacellsByGroups()` itself —
+  `Error: The 'slot' argument of GetAssayData() was deprecated in
+  SeuratObject 5.0.0 and is now defunct`. This is a version mismatch
+  between the installed `hdWGCNA` (which still calls the old
+  `GetAssayData(slot = ...)` API internally) and the installed
+  `SeuratObject` (>=5.0.0, where `slot=` is a hard error, not just a
+  deprecation warning) — nothing in this repo's own scripts to fix, since
+  the offending call lives inside hdWGCNA's source. Real fix: update
+  hdWGCNA from its GitHub repo (it's not on CRAN), which has newer commits
+  using `layer=` instead of `slot=`:
+  `Rscript -e 'remotes::install_github("smorabit/hdWGCNA", upgrade =
+  "never", force = TRUE)'` (install `remotes` first if missing). Verify
+  with `packageVersion("hdWGCNA")` after. **This is likely not a
+  single-call-site problem** — other hdWGCNA functions later in `wgcna.R`
+  (`SetMultiExpr`, `ModuleEigengenes`, `ConstructNetwork`, etc.) may call
+  `GetAssayData(slot = ...)` the same way, so expect the identical error
+  to potentially resurface further into the script until hdWGCNA is fully
+  updated; if it recurs even after reinstalling, check `.libPaths()` for a
+  stale personal-library copy shadowing the update rather than assuming
+  the reinstall didn't include a fix. A monkey-patch shim
+  (`assignInNamespace`-ing a `slot`-to-`layer`-translating
+  `GetAssayData.Seurat`) was considered as a stopgap but not used — the
+  user chose to fix the actual package version instead.
 
 ## Open items / things worth revisiting
 
