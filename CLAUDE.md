@@ -283,12 +283,13 @@ fixed, not adopted quietly.
     `variable_features.rds` — `04`'s copy was selected against the
     pre-filter cohort, so this stage needs its own rather than leaving
     downstream users of the old one (like `wgcna.R`) working off a stale
-    gene selection basis. **Not yet adopted downstream**: `wgcna.R` and
-    `deseq2/deseq2.R` still read from `data/05_integration/`, not
-    `data/06_qc2/` — repoint them once this stage's output is trusted.
-    Meant to be run interactively (no `.sh` job script), matching
-    `02_qc.R`'s precedent for a script with an eyeballed QC decision in the
-    middle of it.
+    gene selection basis. **Now the canonical upstream source for `wgcna/`
+    and `deseq2/deseq2.R`** — both were repointed from `data/05_integration/`
+    to `data/06_qc2/` once this stage was finished (see their entries
+    below). Meant to be run interactively (no `.sh` job script — though the
+    user did add one, `run_06_qc2.sh`, for the batch-runnable back half
+    once the doublet clusters are known), matching `02_qc.R`'s precedent
+    for a script with an eyeballed QC decision in the middle of it.
 
 11. **`wgcna/wgcna.R`, `wgcna/wgcna_stats.R`, `wgcna/wgcna_viz.R`,
     `wgcna/wgcna_clusterprofiler.R`** — consensus hdWGCNA network on the
@@ -296,51 +297,52 @@ fixed, not adopted quietly.
     consensus network — kept consistent with `05`'s own choice to
     integrate at `sample`, not `pool_dir`, granularity: don't introduce a
     finer `pool_dir`/iMG1-vs-iMG1_redo split here that upstream integration
-    didn't make either). `wgcna.R` loads `05_integration_harmony.R`'s
-    BPCells/RDS pieces (not a monolithic `obj_consensus.rds`) plus
-    `04_norm_pca.R`'s `variable_features.rds` (needed for
-    `ScaleMetacells()`/`RunPCAMetacells()`, and not re-saved by `05`).
-    Builds metacells via `MetacellsByGroups()`, grouped by `sample` (not
-    `orig.ident` — identical value throughout this pipeline, but `sample`
-    is this project's documented name for it) plus `genotype`/`treatment`/
-    `batch`/`condition` for convenience (redundant with `sample` for
-    partitioning, since each sample implies exactly one of each, but
-    carried through so they land as real columns on the metacell object's
-    own metadata). Fixed a stale `reduction = 'harmony_pca'` (05 actually
-    saves the reduction as `"harmony"`) and the same 60-level-`sample`
-    -vs-15-color-palette bug already fixed in `05` (metacell UMAP now
-    grouped by `condition`). **hdWGCNA isn't BPCells-aware**: unlike
-    Seurat's own `NormalizeData()`/`ScaleData()`/`RunPCA()`/
-    `IntegrateLayers()` (which do operate directly on BPCells matrices, as
-    `04`/`05` already demonstrate), `SetupForWGCNA(gene_select =
-    "fraction")` crashes with `invalid subscript type 'S4'` against a lazy
-    `IterableMatrix` — counts/data are materialized to `dgCMatrix` right
-    after loading, before anything hdWGCNA-specific runs (same
-    "materialize before handing to a non-BPCells-aware tool" caution as
-    `03_doubletfinder.R`, just applied to the whole assay here since
-    hdWGCNA's pipeline touches it throughout, not one step). **Only saves
-    what this stage adds** — `misc_wgcna_consensus.rds` (hdWGCNA's own
-    network/module/eigengene payload; metacell/module-scale, not cell x
-    gene-matrix scale, so one RDS is appropriate, same reasoning as
-    `pca.rds`/`harmony.rds` elsewhere) and `metadata.rds` (with
-    `ModuleExprScore()`'s per-cell module score columns attached) —
-    counts/data/harmony/harmony_umap are unchanged from `05`'s cell set,
-    so downstream scripts reach back into `data/05_integration/` directly
-    rather than have them re-saved here. **Output directory departs from
-    the rest of the project's `data/<stage>/`/`plots/<stage>/`/
-    `tab_data/<stage>/` split**: per the user's own edit, `wgcna.R`'s
-    `data_out_dir`/`plots_dir`/`tab_out_dir` are all just `wgcna/` — every
-    CSV/PNG/RDS this stage produces lands directly alongside the scripts
-    in `wgcna/`, git-ignored by extension (`wgcna/*.csv`, `wgcna/*.png`,
-    `wgcna/*.rds` in `.gitignore`) rather than under a separate ignored
-    tree. `wgcna_stats.R`/`wgcna_viz.R`/`wgcna_clusterprofiler.R` were
-    updated to match so they can still find `wgcna.R`'s output — if this
-    convention changes again, all four scripts' path variables need to
-    move together.
+    didn't make either). `wgcna.R` loads `06_qc2.R`'s BPCells/RDS pieces
+    (not a monolithic `obj_consensus.rds`) — including `06`'s own fresh
+    `variable_features.rds` (needed for `ScaleMetacells()`/
+    `RunPCAMetacells()`; originally reached back to `04_norm_pca.R` for
+    this before `06_qc2.R` existed, repointed once `06` started saving its
+    own copy). Builds metacells via `MetacellsByGroups()`, grouped by
+    `sample` (not `orig.ident` — identical value throughout this pipeline,
+    but `sample` is this project's documented name for it) plus
+    `genotype`/`treatment`/`batch`/`condition` for convenience (redundant
+    with `sample` for partitioning, since each sample implies exactly one
+    of each, but carried through so they land as real columns on the
+    metacell object's own metadata). Fixed a stale `reduction =
+    'harmony_pca'` (05/06 actually save the reduction as `"harmony"`) and
+    the same 60-level-`sample`-vs-15-color-palette bug already fixed in
+    `05` (metacell UMAP now grouped by `condition`). **hdWGCNA isn't
+    BPCells-aware**: unlike Seurat's own `NormalizeData()`/`ScaleData()`/
+    `RunPCA()`/`IntegrateLayers()` (which do operate directly on BPCells
+    matrices, as `04`/`05`/`06` already demonstrate),
+    `SetupForWGCNA(gene_select = "fraction")` crashes with `invalid
+    subscript type 'S4'` against a lazy `IterableMatrix` — counts/data are
+    materialized to `dgCMatrix` right after loading, before anything
+    hdWGCNA-specific runs (same "materialize before handing to a
+    non-BPCells-aware tool" caution as `03_doubletfinder.R`, just applied
+    to the whole assay here since hdWGCNA's pipeline touches it
+    throughout, not one step). **Only saves what this stage adds** —
+    `misc_wgcna_consensus.rds` (hdWGCNA's own network/module/eigengene
+    payload; metacell/module-scale, not cell x gene-matrix scale, so one
+    RDS is appropriate, same reasoning as `pca.rds`/`harmony.rds`
+    elsewhere) and `metadata.rds` (with `ModuleExprScore()`'s per-cell
+    module score columns attached) — counts/data/harmony/harmony_umap are
+    unchanged from `06`'s cell set, so downstream scripts reach back into
+    `data/06_qc2/` directly rather than have them re-saved here. **Output
+    directory departs from the rest of the project's `data/<stage>/`/
+    `plots/<stage>/`/`tab_data/<stage>/` split**: per the user's own edit,
+    `wgcna.R`'s `data_out_dir`/`plots_dir`/`tab_out_dir` are all just
+    `wgcna/` — every CSV/PNG/RDS this stage produces lands directly
+    alongside the scripts in `wgcna/`, git-ignored by extension
+    (`wgcna/*.csv`, `wgcna/*.png`, `wgcna/*.rds` in `.gitignore`) rather
+    than under a separate ignored tree. `wgcna_stats.R`/`wgcna_viz.R`/
+    `wgcna_clusterprofiler.R` were updated to match so they can still find
+    `wgcna.R`'s output — if this convention changes again, all four
+    scripts' path variables need to move together.
     `wgcna_stats.R` (UCell module scoring, kNN-smoothed over `harmony`,
     genotype x treatment `lmer` models with a `batch` random intercept,
     `emmeans`/`multcomp` post-hoc letters) reconstructs its own object from
-    `05`'s counts (materialized to `dgCMatrix` before `AddModuleScore_UCell`
+    `06`'s counts (materialized to `dgCMatrix` before `AddModuleScore_UCell`
     — same reasoning as above) and recomputes UCell scores itself
     from `wgcna.R`'s `module_members_consensus.csv`, rather than reusing
     hdWGCNA's own internal module scores — dropped a chunk of dead code
@@ -349,7 +351,7 @@ fixed, not adopted quietly.
     the same `orig.ident`-vs-`sample` and `harmony_pca`-vs-`harmony`
     naming issues here too. `wgcna_viz.R` (module radar plot,
     module-module correlogram, per-sample module eigengene dot/violin
-    plots) reconstructs from `05`'s pieces plus `wgcna.R`'s
+    plots) reconstructs from `06`'s pieces plus `wgcna.R`'s
     `metadata.rds`/`misc_wgcna_consensus.rds`, explicitly setting
     `obj@misc$active_wgcna <- "wgcna_consensus"` since that's normally set
     automatically by `SetupForWGCNA()` and needs to be replicated by hand
@@ -359,8 +361,43 @@ fixed, not adopted quietly.
     on `wgcna/module_members_consensus.csv` — no object reconstruction
     needed, otherwise unchanged from its pre-cleanup version.
 
-`deseq2/deseq2.R` exists in the repo as a placeholder/draft carried over
-from a template repo but hasn't been worked on yet in this session.
+12. **`deseq2/deseq2.R`** — pseudobulk DESeq2 across all pairwise
+    genotype x treatment `condition` comparisons (105 = 15 choose 2), with
+    `batch` as a covariate. Loads `06_qc2.R`'s BPCells counts + metadata
+    only (no normalized data/reductions needed for
+    `AggregateExpression(layer = "counts")` pseudobulk). **Rewrote the
+    design/contrast structure, not just the data source** — the prior
+    draft's `design = ~ batch + sample` with pairwise `sample`-vs-`sample`
+    contrasts (all 1770 pairs) had two compounding problems: `batch` is
+    fully determined by `sample` (perfectly collinear, rank-deficient
+    design matrix) and, independent of that, a `sample`-level design has
+    exactly one pseudobulk column per level (zero residual df for
+    dispersion estimation) regardless. Switched to contrasting `condition`
+    (each level has 4 real batch replicates, one sample per batch, giving
+    real residual df) with `batch` as a covariate — an explicit choice the
+    user confirmed via `AskUserQuestion` after the design was flagged as
+    unfittable, not something to change back without asking first. Kept
+    the per-reference-relevel-and-refit loop structure (needed because
+    `lfcShrink(type = "apeglm")` only shrinks a named coefficient, not an
+    arbitrary `results(contrast = ...)`), just re-targeted at `condition`
+    instead of `sample`. Also fixed: the prior draft re-factored
+    `treatment` against lowercase levels (`"control"/"myelin"/"asyn"`)
+    that only ever existed in `01`'s raw metadata — by `02_qc.R` onward
+    the real values are Title Case (`Control`/`Myelin`/`Asyn`), so every
+    cell would have silently become `NA`; deleted that re-factoring
+    entirely rather than fixing the levels, since `06_qc2.R`'s metadata
+    already carries correctly-leveled `genotype`/`treatment`/`batch`/
+    `condition` through from `02` and doesn't need re-deriving. Also
+    `samples <- levels(meta$sample)` was `NULL` (`sample` is a plain
+    character column, never converted to a factor anywhere in this
+    pipeline, so `levels()` on it returns `NULL` and `combn(NULL, 2)`
+    would have errored) — moot now that the loop is keyed on `condition`,
+    which *is* a real factor from `02_qc.R` onward. `slot = "counts"` in
+    `AggregateExpression()` changed to `layer = "counts"`, matching Seurat
+    v5's current argument name (same class of `slot`-vs-`layer` API drift
+    that broke hdWGCNA — see the debugging narrative below; not confirmed
+    to have actually broken here, changed preemptively since the fix costs
+    nothing).
 
 **Stale duplicates**: `jobs/` at the repo root still contains an older,
 untouched copy of several `.sh` job scripts that now also live under
@@ -565,18 +602,18 @@ anything about sequencing batch structure that doesn't care about the
   also live under `preprocessing/`/`wgcna/` — worth cleaning up at some
   point. (`deseq2/` and `wgcna/` are no longer duplicates — see the note
   at the end of the pipeline-stages section above.)
-- `deseq2/deseq2.R` is untouched, and currently broken as written — it
-  still hardcodes reading a single monolithic
-  `data/05_integration/harmony_obj.rds` via one big `saveRDS()`/
-  `readRDS()`, which no longer exists now that `05` writes separate
-  BPCells/RDS pieces to `data/05_integration/`. Update its read step (and
-  its own save step, once revisited) to the BPCells pattern before running
-  it again. (`wgcna/` and `06_qc2.R` were already updated to this pattern
-  — see the pipeline-stages entries above.)
-- `06_qc2.R` (whole-cluster doublet removal + re-integration) exists but
-  isn't yet adopted downstream — `wgcna.R`/`deseq2/deseq2.R` still read
-  from `data/05_integration/`, not `data/06_qc2/`. Repoint them once
-  `06_qc2.R`'s output is trusted/finalized.
+- `deseq2/deseq2.R` and `wgcna/*` now both read from `data/06_qc2/` (see
+  the pipeline-stages entries above) — `06_qc2.R`'s output is the
+  canonical upstream source for both as of this writing. If `06_qc2.R` is
+  ever rerun with a different set of doublet-flagged clusters (or its own
+  logic changes), both downstream consumers pick that up automatically
+  since neither caches a copy of `06`'s cell set.
+- `deseq2/deseq2.R`'s `AggregateExpression(..., layer = "counts")` fix
+  (changed from the prior draft's `slot = "counts"`) hasn't actually been
+  run yet to confirm it was necessary — flagged preemptively based on the
+  same `slot`-vs-`layer` API drift that broke hdWGCNA (see the debugging
+  narrative below). If it turns out `slot` still worked fine, no harm done
+  either way.
 - `05_integration_harmony.R` splits by the unified `sample` column (60
   levels) for Harmony integration, not `pool_dir` — an explicit, informed
   choice the user made after being shown the tradeoff (see the `05` pipeline

@@ -1,11 +1,11 @@
 # Scores each WGCNA module's expression per cell (UCell, kNN-smoothed over
 # the Harmony embedding), then fits genotype x treatment models (random
 # intercept for batch) per module and plots estimated marginal means with
-# post-hoc letters. Loads the whole-cohort object from
-# 05_integration_harmony.R's BPCells/RDS pieces (not a monolithic
-# obj_consensus.rds) plus the module gene membership table wgcna.R writes,
-# and recomputes its own UCell scores directly from raw counts rather than
-# reusing wgcna.R's hdWGCNA-internal module scores.
+# post-hoc letters. Loads the whole-cohort object from 06_qc2.R's
+# BPCells/RDS pieces (not a monolithic obj_consensus.rds) plus the module
+# gene membership table wgcna.R writes, and recomputes its own UCell scores
+# directly from raw counts rather than reusing wgcna.R's hdWGCNA-internal
+# module scores.
 
 suppressMessages({
   library(Seurat)
@@ -26,11 +26,11 @@ setwd("/projects/b1169/boles/img_scfrp")
 tab_dir <- "wgcna/"
 plots_dir <- "wgcna/"
 
-# Read in 05's integrated object ---------------------------------------------
+# Read in 06's integrated, doublet-cluster-filtered object -------------------
 
-counts_mat <- open_matrix_dir("data/05_integration/bpcells_counts")
-meta <- readRDS("data/05_integration/metadata.rds")
-harmony <- readRDS("data/05_integration/harmony.rds")
+counts_mat <- open_matrix_dir("data/06_qc2/bpcells_counts")
+meta <- readRDS("data/06_qc2/metadata.rds")
+harmony <- readRDS("data/06_qc2/harmony.rds")
 
 # UCell ranks genes within each cell, which needs efficient random access
 # across the whole matrix rather than simple column slicing -- same
