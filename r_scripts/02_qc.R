@@ -20,11 +20,8 @@ message2 <- function(text){
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-plots_dir <- "plots/02_qc/"
-dir.create(plots_dir, showWarnings = F, recursive = T)
-
-csv_dir <- "tab_data/02_qc/"
-dir.create(csv_dir, showWarnings = F, recursive = T)
+results_dir <- "results/02_qc/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 data_out_dir <- "data/02_qc/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)
@@ -110,7 +107,7 @@ juxt_vln <- function(feature, title, xlab, file_suffix){
       scale_x_log10()
     }
 
-  ggsave(p, filename = paste0(plots_dir, "raw_", file_suffix, ".png"),
+  ggsave(p, filename = paste0(results_dir, "raw_", file_suffix, ".png"),
          units = "in", dpi = 600, height = 5, width = 10)
 }
 
@@ -143,7 +140,7 @@ median_stats_plot <- function(stats, filename){
           axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
           axis.title = element_blank(),
           legend.title = element_blank())
-  ggsave(paste0(plots_dir, filename), units = "in", dpi = 600, height = 4, width = 12)
+  ggsave(paste0(results_dir, filename), units = "in", dpi = 600, height = 4, width = 12)
 }
 
 stats <- Median_Stats(obj, group.by = "sample")
@@ -153,7 +150,7 @@ counts_tbl <- obj@meta.data %>%
   adorn_totals(name = "Totals (All Cells)")
 stats <- stats %>% left_join(counts_tbl, by = "sample")
 
-write.csv(stats, file = paste0(csv_dir, "raw_median_stats.csv"), row.names = F)
+write.csv(stats, file = paste0(results_dir, "raw_median_stats.csv"), row.names = F)
 
 # adorn_totals()'s summary row has no genotype/treatment/batch match in
 # sample_lookup and would plot as NA -- drop it rather than relying on a
@@ -254,7 +251,7 @@ discard_plot <- function(feature, discard_flag, title, xlab, file_suffix){
       scale_x_log10()
   }
 
-  ggsave(p, filename = paste0(plots_dir, "thresholds_", file_suffix, ".png"),
+  ggsave(p, filename = paste0(results_dir, "thresholds_", file_suffix, ".png"),
          units = "in", dpi = 600, height = 5, width = 10)
 }
 
@@ -280,13 +277,13 @@ stats <- meta %>%
   mutate(retained_percent = (`FALSE` / (`FALSE` + `TRUE`)) * 100) %>%
   dplyr::rename("retained_count" = "FALSE", "discarded_count" = "TRUE")
 
-write.csv(thresh_df, file = paste0(csv_dir, "cutoffs.csv"), row.names = F)
-write.csv(stats, file = paste0(csv_dir, "filtered_counts.csv"), row.names = F)
+write.csv(thresh_df, file = paste0(results_dir, "cutoffs.csv"), row.names = F)
+write.csv(stats, file = paste0(results_dir, "filtered_counts.csv"), row.names = F)
 
 barcodes <- meta %>%
   select(cell, nCount_RNA, nFeature_RNA, percent_mito,
          mito_discard, umi_discard, gene_discard, discard)
-write.csv(barcodes, file = paste0(csv_dir, "barcode_qc.csv"), row.names = F)
+write.csv(barcodes, file = paste0(results_dir, "barcode_qc.csv"), row.names = F)
 
 # Filter object and save as BPCells -----------------------------------------
 
@@ -309,7 +306,7 @@ counts_tbl <- obj_filtered@meta.data %>%
   adorn_totals(name = "Totals (All Cells)")
 stats <- stats %>% left_join(counts_tbl, by = "sample")
 
-write.csv(stats, file = paste0(csv_dir, "filtered_median_stats.csv"), row.names = F)
+write.csv(stats, file = paste0(results_dir, "filtered_median_stats.csv"), row.names = F)
 median_stats_plot(stats %>% filter(sample != "Totals (All Cells)"),
                   "filtered_median_stats.png")
 

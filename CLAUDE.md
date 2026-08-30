@@ -91,12 +91,51 @@ writes a whole object via a single `saveRDS`/`readRDS(...)  # full Seurat
 object`, that's a regression from this convention and should be flagged/
 fixed, not adopted quietly.
 
+## Directory structure: `r_scripts/`, `jobs/`, `data/`, `results/`
+
+As of the user's own repo-wide reorganization, the analysis pipeline
+(everything formerly under `preprocessing/`, `wgcna/`, `deseq2/`) follows
+one flat, consistent layout — **the same split applies to every stage,
+without exception**:
+- **`r_scripts/`** — every `.R` script for the analysis pipeline, flat, no
+  subfolders (`01_obj_creation.R` through `06_qc2.R`, `wgcna*.R`,
+  `deseq2*.R`).
+- **`jobs/`** — every SLURM `.sh` job script for the analysis pipeline,
+  flat, matching names to their `r_scripts/` counterpart
+  (`run_01_obj_creation.sh`, `run_wgcna.sh`, etc.).
+- **`data/<stage>/`** — unchanged from the BPCells convention above: each
+  stage's BPCells matrices + RDS pieces (counts, normalized data,
+  reductions, metadata, hdWGCNA's network payload, ...). Gitignored,
+  HPC-only, regenerable from upstream stages.
+- **`results/<stage>/`** — **replaces the old separate `plots/<stage>/` +
+  `tab_data/<stage>/` split** — every plot (`.png`) and every tabular
+  result (`.csv`, `.txt`) a stage produces now lands in one
+  `results/<stage>/` folder. Also gitignored (regenerable by rerunning the
+  stage). Each script uses a single `results_dir <- "results/<stage>/"`
+  variable for both, rather than separate `plots_dir`/`tab_dir`/`csv_dir`
+  variables. `cellranger_scripts/`, `cellbender_scripts/`, and `seqtk/`
+  were deliberately **not** touched by this reorg — they're a separate,
+  already-working part of the pipeline with their own established
+  per-purpose folders, out of scope by explicit user choice.
+
+This means `data/<stage>/` and `results/<stage>/` share the exact same
+`<stage>` name for a given script (e.g. `06_qc2.R` reads/writes
+`data/06_qc2/` for its BPCells/RDS pieces and `results/06_qc2/` for its
+plots/CSVs) — a stage's outputs are never split across more than these two
+trees. `wgcna.R`/`deseq2.R` are no longer special cases here: they used to
+depart from this pattern (a flat `wgcna/` directory, or `tab_data/deseq2/`)
+before this reorg, but now follow `data/wgcna/` + `results/wgcna/` and
+`data/deseq2/`-if-needed + `results/deseq2/` like everything else. If you
+ever see a script writing to a bare `wgcna/`/`deseq2/` path, a separate
+`plots/`/`tab_data/` tree, or reading `.R`/`.sh` scripts from
+`preprocessing/`/`wgcna/`/`deseq2/`, that's a leftover from before this
+reorg and should be fixed to match.
+
 ## HPC environment (Northwestern Quest)
 
 - Repo/storage lives at `/projects/b1169/boles/img_scfrp` (this is also
-  where `data/`, `plots/`, `tab_data/`, `logs/`, `fastq/`,
-  `downsampled_fastq/`, `cellranger/`, `cellbender/`, `envs/` live —
-  all gitignored, HPC-only).
+  where `data/`, `results/`, `logs/`, `fastq/`, `downsampled_fastq/`,
+  `cellranger/`, `cellbender/`, `envs/` live — all gitignored, HPC-only).
 - Cell Ranger reference/probe-set files:
   `/projects/p31535/boles/cellranger_references/`.
   Cell Ranger binary: `/projects/p31535/boles/cellranger-10.0.0/cellranger`.
@@ -150,7 +189,7 @@ fixed, not adopted quietly.
    runs via `run_all_cellbender_cpu.sh` (CPU) rather than
    `run_all_cellbender.sh` (GPU, currently blocked).
 
-5. **`preprocessing/01_obj_creation.R`** — assembles all 75 CellBender
+5. **`r_scripts/01_obj_creation.R`** — assembles all 75 CellBender
    outputs into one Seurat object, on-disk via **BPCells**
    (`data/01_obj_assembly/bpcells` + `metadata.rds`), driven directly off
    `cell_quantities.csv`. Also writes `data/01_obj_assembly/bpcells_persample/<distinct capture id>`
@@ -160,7 +199,7 @@ fixed, not adopted quietly.
    `genotype`/`treatment`/`date`/`batch` from `samples.csv` and sets the
    unified `sample` + distinguishing `pool_dir` metadata described above.
 
-6. **`preprocessing/02_qc.R`** — reads `01`'s BPCells object, computes
+6. **`r_scripts/02_qc.R`** — reads `01`'s BPCells object, computes
    QC metrics (`scCustomize::Add_Cell_Complexity`/`Add_Mito_Ribo`), raw QC
    plots faceted by batch, per-**sample** (unified, 60-level) MAD-based
    thresholds (2x lower / 2.5x upper on log UMI/genes, mito ceiling 5% —
@@ -171,7 +210,7 @@ fixed, not adopted quietly.
    order) as a plotting/grouping variable distinct from `sample` — don't
    conflate the two.
 
-7. **`preprocessing/03_doubletfinder.R`** — runs DoubletFinder as a
+7. **`r_scripts/03_doubletfinder.R`** — runs DoubletFinder as a
    **75-task SLURM array**, one per (pool, sample) capture (see
    `run_03_doubletfinder.sh`'s self-resubmitting pattern below). Reloads
    raw per-capture matrices from `01`'s `bpcells_persample/` (not `02`'s
@@ -194,7 +233,7 @@ fixed, not adopted quietly.
    `als_cns_scrnaseq`'s literal per-sample pattern) after being warned
    about it — don't "fix" it back to per-pool without asking first.
 
-8. **`preprocessing/04_norm_pca.R`** — rebuilds the whole-cohort object from
+8. **`r_scripts/04_norm_pca.R`** — rebuilds the whole-cohort object from
    `02`'s filtered BPCells counts + metadata, attaches DoubletFinder's
    `DF.unadj`/`DF.adj` per-cell classifications from `03`'s
    `metadata_persample/` (matched by exact rowname/cell-barcode, which
@@ -219,7 +258,7 @@ fixed, not adopted quietly.
    to match (this does log-normalization via `NormalizeData()`, not
    `SCTransform`).
 
-9. **`preprocessing/05_integration_harmony.R`** — the only integration
+9. **`r_scripts/05_integration_harmony.R`** — the only integration
    method kept (the user removed `05_integration_cca.R` and
    `05_integration_harmony_2-3.R` as unneeded; `run_05_integration_cca.sh`
    was deleted alongside it as a now-dangling job script). Loads `04`'s
@@ -249,21 +288,15 @@ fixed, not adopted quietly.
    panel). **Writes BPCells counts (`bpcells_counts`) and normalized data
    (`bpcells_data`) matrices, `metadata.rds`, `harmony.rds`, and
    `harmony_umap.rds` to `data/05_integration/`** — both matrices are
-   written (not just `data`, as `04` does) specifically so `06_qc2.R`,
-   `wgcna.R`, and `deseq2/deseq2.R` (which needs real raw counts for
-   `AggregateExpression(slot = "counts")` pseudobulk) can all build
-   directly off this one stage's output without reaching further back.
-   **Known dangling reference**: `deseq2/deseq2.R` still
-   hardcodes reading a single monolithic `data/05_integration/
-   harmony_obj.rds` via one big `saveRDS()`/`readRDS()` — deliberately left
-   as-is since that stage hasn't been revisited yet; update it to
-   reconstruct from `05_integration/`'s BPCells/RDS pieces (per the
-   standing BPCells convention above) before running it again. (`wgcna.R`
-   was fixed to do this — see below. The old `06_clustering.R`/
-   `06b_clustering_markers.R` placeholders that used to have this same
-   problem were removed by the user and replaced by `06_qc2.R` below.)
+   written (not just `data`, as `04` does) specifically so `06_qc2.R`
+   could build directly off this one stage's output without reaching
+   further back. (The old `06_clustering.R`/`06b_clustering_markers.R`
+   placeholders that used to have a dangling-reference problem here were
+   removed by the user and replaced by `06_qc2.R` below; `wgcna.R` and
+   `deseq2.R` have both since been repointed to `data/06_qc2/` instead of
+   reaching back to `05` directly — see their entries below.)
 
-10. **`preprocessing/06_qc2.R`** — a second QC pass, addressing
+10. **`r_scripts/06_qc2.R`** — a second QC pass, addressing
     `03_doubletfinder.R`'s own documented caveat that per-sample
     DoubletFinder can't catch doublets formed between two *different*
     samples sharing a GEM well. Loads `05`'s BPCells/RDS pieces, clusters
@@ -284,15 +317,16 @@ fixed, not adopted quietly.
     pre-filter cohort, so this stage needs its own rather than leaving
     downstream users of the old one (like `wgcna.R`) working off a stale
     gene selection basis. **Now the canonical upstream source for `wgcna/`
-    and `deseq2/deseq2.R`** — both were repointed from `data/05_integration/`
-    to `data/06_qc2/` once this stage was finished (see their entries
+    and `r_scripts/deseq2.R` scripts** — both were repointed from
+    `data/05_integration/` to `data/06_qc2/` once this stage was finished
+    (see their entries
     below). Meant to be run interactively (no `.sh` job script — though the
     user did add one, `run_06_qc2.sh`, for the batch-runnable back half
     once the doublet clusters are known), matching `02_qc.R`'s precedent
     for a script with an eyeballed QC decision in the middle of it.
 
-11. **`wgcna/wgcna.R`, `wgcna/wgcna_stats.R`, `wgcna/wgcna_viz.R`,
-    `wgcna/wgcna_clusterprofiler.R`** — consensus hdWGCNA network on the
+11. **`r_scripts/wgcna.R`, `r_scripts/wgcna_stats.R`, `r_scripts/wgcna_viz.R`,
+    `r_scripts/wgcna_clusterprofiler.R`** — consensus hdWGCNA network on the
     whole-cohort object (one network per `batch`, reconciled into one
     consensus network — kept consistent with `05`'s own choice to
     integrate at `sample`, not `pool_dir`, granularity: don't introduce a
@@ -329,16 +363,16 @@ fixed, not adopted quietly.
     module score columns attached) — counts/data/harmony/harmony_umap are
     unchanged from `06`'s cell set, so downstream scripts reach back into
     `data/06_qc2/` directly rather than have them re-saved here. **Output
-    directory departs from the rest of the project's `data/<stage>/`/
-    `plots/<stage>/`/`tab_data/<stage>/` split**: per the user's own edit,
-    `wgcna.R`'s `data_out_dir`/`plots_dir`/`tab_out_dir` are all just
-    `wgcna/` — every CSV/PNG/RDS this stage produces lands directly
-    alongside the scripts in `wgcna/`, git-ignored by extension
-    (`wgcna/*.csv`, `wgcna/*.png`, `wgcna/*.rds` in `.gitignore`) rather
-    than under a separate ignored tree. `wgcna_stats.R`/`wgcna_viz.R`/
-    `wgcna_clusterprofiler.R` were updated to match so they can still find
-    `wgcna.R`'s output — if this convention changes again, all four
-    scripts' path variables need to move together.
+    directory**: `wgcna.R`'s RDS/network pieces (`misc_wgcna_consensus.rds`,
+    `metadata.rds`) go to `data/wgcna/`; its plots/CSVs go to
+    `results/wgcna/` — this used to be a special-cased flat `wgcna/`
+    directory for everything (a departure from the rest of the project's
+    `data/<stage>/`+`results/<stage>/` split), but the repo-wide
+    `r_scripts/`/`jobs/`/`data/`/`results/` reorg brought it in line with
+    every other stage; it's no longer an exception. `wgcna_stats.R`/
+    `wgcna_viz.R`/`wgcna_clusterprofiler.R` were updated to match so they
+    can still find `wgcna.R`'s output — if this convention changes again,
+    all four scripts' path variables need to move together.
     `wgcna_stats.R` (UCell module scoring, kNN-smoothed over `harmony`,
     genotype x treatment `lmer` models with a `batch` random intercept,
     `emmeans`/`multcomp` post-hoc letters) reconstructs its own object from
@@ -358,10 +392,10 @@ fixed, not adopted quietly.
     on a manually-reconstructed object. `wgcna_clusterprofiler.R`
     (`clusterProfiler::enricher()` pathway enrichment per module, against
     combined MSigDB C2 canonical-pathway + C5 GO gene sets) only depends
-    on `wgcna/module_members_consensus.csv` — no object reconstruction
+    on `results/wgcna/module_members_consensus.csv` — no object reconstruction
     needed, otherwise unchanged from its pre-cleanup version.
 
-12. **`deseq2/deseq2.R`** — pseudobulk DESeq2 across all pairwise
+12. **`r_scripts/deseq2.R`** — pseudobulk DESeq2 across all pairwise
     genotype x treatment `condition` comparisons (105 = 15 choose 2), with
     `batch` as a covariate. Loads `06_qc2.R`'s BPCells counts + metadata
     only (no normalized data/reductions needed for
@@ -397,16 +431,28 @@ fixed, not adopted quietly.
     v5's current argument name (same class of `slot`-vs-`layer` API drift
     that broke hdWGCNA — see the debugging narrative below; not confirmed
     to have actually broken here, changed preemptively since the fix costs
-    nothing).
+    nothing). `r_scripts/deseq2_gsea.R` (fgsea per pairwise comparison
+    against a fixed external gene-set CSV) reads `deseq2.R`'s
+    `lfc_shrunk_*.csv` output from `results/deseq2/` and writes its own
+    results to `results/deseq2_gsea/` — repointed for the reorg but
+    otherwise untouched/not yet reviewed for correctness the way `deseq2.R`
+    itself was. `deseq2_final.R`, an exact pre-fix duplicate of `deseq2.R`
+    (same `~ batch + sample` / lowercase-`treatment` bugs), was deleted
+    outright as dead weight rather than moved.
 
-**Stale duplicates**: `jobs/` at the repo root still contains an older,
-untouched copy of several `.sh` job scripts that now also live under
-`preprocessing/`/`wgcna/` — dead weight worth cleaning up eventually, but
-not touched since it wasn't asked for. (`deseq2/` and `wgcna/` at the repo
-root are, as of the user's own reorganization commit, the *canonical*
-locations for those two workflows — the `preprocessing/deseq2*.R`/
-`preprocessing/wgcna*.R` copies CLAUDE.md previously flagged as the
-maintained ones were deleted in that same commit; don't resurrect them.)
+**No more stale duplicates as of the `r_scripts/`/`jobs/`/`results/` reorg**:
+`preprocessing/`, `wgcna/`, and `deseq2/` (as directories) no longer exist
+at all — every `.R` script from all three moved into `r_scripts/`, every
+`.sh` job script moved into `jobs/`. This also finally resolved the
+long-standing stale-duplicate problem this file used to track here: `jobs/`
+used to hold an old, untouched, out-of-date copy of several job scripts
+(wrong SLURM accounts, dangling references to deleted `.R` files) alongside
+the real maintained ones under `preprocessing/`/`wgcna/` — those old copies
+were deleted outright rather than merged, since `jobs/` is now the single
+canonical location and there's nothing left to duplicate against. If you
+ever see a `.R`/`.sh` file living outside `r_scripts/`/`jobs/` for this
+pipeline, or a stray `preprocessing/`/`wgcna/`/`deseq2/` directory, that's
+a regression — move it, don't resurrect the old split.
 
 ## Metadata schema, stage by stage
 
@@ -446,7 +492,7 @@ anything about sequencing batch structure that doesn't care about the
 
 - **Self-resubmitting SLURM arrays**: several scripts (`seqtk/seqtk.sh`,
   `cellbender_scripts/run_all_cellbender*.sh`,
-  `preprocessing/run_03_doubletfinder.sh`) follow the same pattern: check
+  `jobs/run_03_doubletfinder.sh`) follow the same pattern: check
   `$SLURM_ARRAY_TASK_ID`; if unset, compute the task count from a manifest
   CSV/file count and `exec sbatch --array=1-N[%throttle] "$0"`; if set, do
   the actual per-task work. Run these with `bash script.sh` (not `sbatch`)
@@ -588,6 +634,11 @@ anything about sequencing batch structure that doesn't care about the
 
 ## Open items / things worth revisiting
 
+- `r_scripts/deseq2_gsea.R` has not been reviewed for correctness the way
+  `deseq2.R` was — only its paths were repointed for the `results/` reorg.
+  Worth the same scrutiny (it reads `deseq2.R`'s per-`condition`
+  `lfc_shrunk_*.csv` files now, so it inherits that design, but hasn't
+  been run or checked itself).
 - CellBender GPU oversubscription on `qgpu0102` is unresolved — worth an
   HPC support ticket with the `sacct` evidence in
   `cellbender_scripts/README.md` if GPU speed ever becomes worth pursuing
@@ -598,17 +649,18 @@ anything about sequencing batch structure that doesn't care about the
 - `03_doubletfinder.R`'s doublet-rate formula likely underestimates the
   true rate for this multiplexed design (see caveat above) — revisit if it
   matters for the analysis.
-- Root-level `jobs/` still duplicates several `.sh` job scripts that now
-  also live under `preprocessing/`/`wgcna/` — worth cleaning up at some
-  point. (`deseq2/` and `wgcna/` are no longer duplicates — see the note
-  at the end of the pipeline-stages section above.)
-- `deseq2/deseq2.R` and `wgcna/*` now both read from `data/06_qc2/` (see
+- ~~Root-level `jobs/` duplicates several `.sh` job scripts~~ — resolved by
+  the `r_scripts/`/`jobs/`/`data/`/`results/` reorg (see the directory-
+  structure section near the top and the note at the end of the
+  pipeline-stages section above); `jobs/` is now the single canonical `.sh`
+  location, nothing left to duplicate.
+- `r_scripts/deseq2.R` and `r_scripts/wgcna*.R` now both read from `data/06_qc2/` (see
   the pipeline-stages entries above) — `06_qc2.R`'s output is the
   canonical upstream source for both as of this writing. If `06_qc2.R` is
   ever rerun with a different set of doublet-flagged clusters (or its own
   logic changes), both downstream consumers pick that up automatically
   since neither caches a copy of `06`'s cell set.
-- `deseq2/deseq2.R`'s `AggregateExpression(..., layer = "counts")` fix
+- `r_scripts/deseq2.R`'s `AggregateExpression(..., layer = "counts")` fix
   (changed from the prior draft's `slot = "counts"`) hasn't actually been
   run yet to confirm it was necessary — flagged preemptively based on the
   same `slot`-vs-`layer` API drift that broke hdWGCNA (see the debugging

@@ -35,14 +35,13 @@ message2 <- function(text){
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-data_out_dir <- "wgcna/"
+# RDS/network pieces (BPCells-adjacent "data" convention) vs. plots/CSVs
+# ("results" convention) -- see CLAUDE.md's directory-structure note.
+data_out_dir <- "data/wgcna/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)
 
-plots_dir <- "wgcna/"
-dir.create(plots_dir, showWarnings = F, recursive = T)
-
-tab_out_dir <- "wgcna/"
-dir.create(tab_out_dir, showWarnings = F, recursive = T)
+results_dir <- "results/wgcna/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 # Read in 06's integrated, doublet-cluster-filtered object -------------------
 
@@ -171,7 +170,7 @@ p <- p1 + p2 + p3 + p4 +
   plot_layout(ncol = 2)
 
 ggsave(p,
-       filename = paste0(plots_dir, "metacells_umaps.png"),
+       filename = paste0(results_dir, "metacells_umaps.png"),
        units = "in", dpi = 600,
        height = 8,
        width = 10)
@@ -209,7 +208,7 @@ p_list <- lapply(1:length(consensus_groups), function(i){
   plot_list[[i]][[1]] + ggtitle(paste0('Batch: ', cur_group)) + theme(plot.title=element_text(hjust=0.5))
 })
 
-png(paste0(plots_dir, "soft_powers_consensus.png"),
+png(paste0(results_dir, "soft_powers_consensus.png"),
     height = 8, width = 8,
     res = 600,
     units = "in")
@@ -218,7 +217,7 @@ dev.off()
 
 power_table <- GetPowerTable(obj)
 write.csv(power_table,
-          file = paste0(tab_out_dir, "soft_powers_consensus.csv"))
+          file = paste0(results_dir, "soft_powers_consensus.csv"))
 
 # Construct TOM -----------------------------------------------------------
 
@@ -230,7 +229,7 @@ obj <- ConstructNetwork(
   consensus = T
 )
 
-png(paste0(plots_dir, "dendrogram_consensus.png"),
+png(paste0(results_dir, "dendrogram_consensus.png"),
     height = 8, width = 8,
     res = 600,
     units = "in")
@@ -246,7 +245,7 @@ obj <- ModuleEigengenes(
 
 hMEs <- GetMEs(obj)
 write.csv(hMEs,
-          file = paste0(tab_out_dir, "hmes_consensus.csv"))
+          file = paste0(results_dir, "hmes_consensus.csv"))
 
 obj <- ModuleConnectivity(
   obj,
@@ -255,7 +254,7 @@ obj <- ModuleConnectivity(
 )
 
 p <- PlotKMEs(obj, ncol=4, text_size = 4)
-png(paste0(plots_dir, "kmes_consensus.png"),
+png(paste0(results_dir, "kmes_consensus.png"),
     height = 12, width = 12,
     res = 600,
     units = "in")
@@ -277,7 +276,7 @@ plot_list <- ModuleFeaturePlot(
   # order so the points with highest hMEs are on top
 )
 
-png(paste0(plots_dir, "eigengenes_umap_consensus.png"),
+png(paste0(results_dir, "eigengenes_umap_consensus.png"),
     height = 8, width = 8,
     res = 600,
     units = "in")
@@ -293,7 +292,7 @@ plot_list <- ModuleFeaturePlot(
   # order so the points with highest scores are on top
 )
 
-png(paste0(plots_dir, "module_scores_umap_consensus.png"),
+png(paste0(results_dir, "module_scores_umap_consensus.png"),
     height = 8, width = 8,
     units = "in",
     res = 600)
@@ -305,7 +304,7 @@ dev.off()
 # wgcna_stats.R (module gene sets for its own UCell scoring).
 mods <- obj@misc[["wgcna_consensus"]][["wgcna_modules"]]
 write.csv(mods,
-          file = paste0(tab_out_dir, "module_members_consensus.csv"))
+          file = paste0(results_dir, "module_members_consensus.csv"))
 
 # Save ----------------------------------------------------------------------
 
@@ -333,10 +332,10 @@ saveRDS(obj@meta.data,
 #   data_mat <- open_matrix_dir("data/06_qc2/bpcells_data")
 #   harmony <- readRDS("data/06_qc2/harmony.rds")
 #   harmony_umap <- readRDS("data/06_qc2/harmony_umap.rds")
-#   meta <- readRDS("wgcna/metadata.rds")
+#   meta <- readRDS("data/wgcna/metadata.rds")
 #   obj <- CreateSeuratObject(counts = counts_mat, meta.data = meta, assay = "RNA")
 #   obj[["RNA"]]$data <- data_mat
 #   obj[["harmony"]] <- harmony
 #   obj[["harmony_umap"]] <- harmony_umap
-#   obj@misc[["wgcna_consensus"]] <- readRDS("wgcna/misc_wgcna_consensus.rds")
+#   obj@misc[["wgcna_consensus"]] <- readRDS("data/wgcna/misc_wgcna_consensus.rds")
 #   obj@misc$active_wgcna <- "wgcna_consensus"

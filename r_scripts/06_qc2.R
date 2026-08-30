@@ -13,12 +13,11 @@
 # object), same as every stage since 04. Saves in the same BPCells pattern
 # 05 uses (bpcells_counts, bpcells_data, metadata, harmony, harmony_umap),
 # plus its own fresh variable_features.rds -- 04's variable_features.rds
-# was selected against the pre-filter cell set, so wgcna.R (which reaches
-# back to 04 for this) would otherwise be using a stale gene selection
-# basis once this stage removes cells. Downstream reads should be repointed
-# from data/05_integration/ to data/06_qc2/ once this stage is adopted --
-# wgcna.R/deseq2/deseq2.R still read data/05_integration/ as of this
-# writing.
+# was selected against the pre-filter cell set, so anything reaching back
+# to 04 for this would otherwise be using a stale gene selection basis
+# once this stage removes cells. wgcna.R and deseq2.R read from
+# data/06_qc2/ (repointed once this stage was adopted), not
+# data/05_integration/.
 
 suppressMessages({
   library(Seurat)
@@ -36,8 +35,8 @@ message2 <- function(text){
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-plots_dir <- "plots/06_qc2/"
-dir.create(plots_dir,
+results_dir <- "results/06_qc2/"
+dir.create(results_dir,
            showWarnings = F,
            recursive = T)
 
@@ -112,7 +111,7 @@ make_umaps <- function(reduction, type){
     plot_layout(ncol = 2)
 
   ggsave(p,
-         filename = paste0(plots_dir, type, "_umaps.png"),
+         filename = paste0(results_dir, type, "_umaps.png"),
          units = "in", dpi = 600,
          height = 8,
          width = 10)
@@ -162,7 +161,7 @@ p <- p1 + p2 + p3 +
   plot_layout(design = design)
 
 ggsave(p,
-       filename = paste0(plots_dir, "clusters_by_doublets.png"),
+       filename = paste0(results_dir, "clusters_by_doublets.png"),
        units = "in", dpi = 600,
        height = 10, width = 12)
 
@@ -181,7 +180,7 @@ removed_counts <- obj@meta.data %>%
   count(doublet_qc_cluster) %>%
   filter(doublet_qc_cluster %in% doublet_clusters)
 write.csv(removed_counts,
-          file = paste0(data_out_dir, "removed_doublet_clusters.csv"),
+          file = paste0(results_dir, "removed_doublet_clusters.csv"),
           row.names = F)
 
 obj <- subset(obj, subset = !(doublet_qc_cluster %in% doublet_clusters))

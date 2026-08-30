@@ -10,4 +10,4 @@
 9. Run Cell Bender<br>
 `cellbender_scripts/run_all_cellbender.sh` 
 11. Assemble objects<br>
-`preprocessing/01_obj_creation.R`
+`r_scripts/01_obj_creation.R`

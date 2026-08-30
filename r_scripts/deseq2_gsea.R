@@ -3,7 +3,11 @@ library(fgsea)
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-dir.create("tab_data/deseq2_gsea/")
+results_dir <- "results/deseq2_gsea/"
+dir.create(results_dir, showWarnings = F, recursive = T)
+
+# deseq2.R's own output, read here rather than re-derived.
+deseq2_dir <- "results/deseq2/"
 
 url <- 'https://github.com/jackbibby1/SCPA/raw/refs/heads/main/gene_sets/h_k_r_go_pid_reg_wik.csv'
 pathways <- read.csv(url, 
@@ -22,7 +26,7 @@ for (i in (1:nrow(pathways))){
   names(genesets)[i] <- rownames(pathways)[i]
 }
 
-files <- list.files("tab_data/deseq2/",
+files <- list.files(deseq2_dir,
                     pattern = "lfc_shrunk")
 
 for (i in seq_along(files)){
@@ -34,7 +38,7 @@ for (i in seq_along(files)){
   message(comp)
   message(paste0(i, " out of ", length(files)))
   
-  de <- read.csv(paste0("tab_data/deseq2/", files[i]))
+  de <- read.csv(paste0(deseq2_dir, files[i]))
   
   de <- de %>%
     arrange(desc(log2FoldChange))
@@ -49,7 +53,7 @@ for (i in seq_along(files)){
   fgseaRes$leadingEdge <- as.character(fgseaRes$leadingEdge)
   
   write.csv(fgseaRes,
-            file = paste0("tab_data/deseq2_gsea/", comp, ".csv"),
+            file = paste0(results_dir, comp, ".csv"),
             row.names = F)
   
 }

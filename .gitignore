@@ -49,13 +49,6 @@ po/*~
 rsconnect/
 
 fastq/*
-deseq2/*.csv
-deseq2/*.rds
-wgcna/*.csv
-wgcna/*.png
-wgcna/*.rds
-wgcna/*.rda
-tab_data/*
 logs/*
 cellranger/*
 cellbender/*
@@ -63,4 +56,9 @@ downsampled_fastq/*
 data/*
 *.tar.gz
 envs/*
-plots/
+
+# All plots and tabular results (from preprocessing/wgcna/deseq2 R scripts
+# under r_scripts/) live under one results/ tree, one subfolder per step --
+# regenerable from data/ + r_scripts/, so ignored like data/ is. r_scripts/
+# and jobs/ are NOT ignored -- those are the actual source we want tracked.
+results/

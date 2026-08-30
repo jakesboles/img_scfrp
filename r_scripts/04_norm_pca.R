@@ -35,8 +35,8 @@ setwd("/projects/b1169/boles/img_scfrp")
 
 options(future.globals.maxSize = 64000 * (1024^2))
 
-plots_dir <- "plots/04_norm_pca/"
-dir.create(plots_dir, showWarnings = F, recursive = T)
+results_dir <- "results/04_norm_pca/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 data_out_dir <- "data/04_norm_pca/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)
@@ -129,7 +129,7 @@ obj <- RunPCA(obj, npcs = 50)
 message2("Making elbow plot")
 
 p <- ElbowPlot(obj, ndims = 50)
-ggsave(p, filename = paste0(plots_dir, "elbow.png"),
+ggsave(p, filename = paste0(results_dir, "elbow.png"),
        units = "in", dpi = 600, height = 4, width = 5, bg = "white")
 
 message2("Finding PCA elbow")
@@ -159,7 +159,7 @@ message(paste0("Suggested # PCs (max-distance elbow): ", elbow_pc))
 
 message2("Making PC loading plots")
 
-Iterate_PC_Loading_Plots(obj, file_path = plots_dir, file_name = "pca_loadings")
+Iterate_PC_Loading_Plots(obj, file_path = results_dir, file_name = "pca_loadings")
 
 # Same palettes as 02_qc.R's QC plots, for visual consistency across stages.
 genotype_pal <- c("red", "yellow", "green", "blue", "purple")
@@ -220,7 +220,7 @@ pca_plot <- function(dims){
     plot_layout(ncol = 2)
 
   ggsave(p,
-         filename = paste0(plots_dir, "pca_dims", dims[1], "-", dims[2], ".png"),
+         filename = paste0(results_dir, "pca_dims", dims[1], "-", dims[2], ".png"),
          units = "in", dpi = 600,
          height = 8,
          width = 10)
