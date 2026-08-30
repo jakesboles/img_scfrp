@@ -20,11 +20,11 @@ suppressMessages({
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-# wgcna.R writes its own outputs directly to wgcna/ (not data/plots/
-# tab_data/wgcna/) -- matched here so module_members_consensus.csv is
+# wgcna.R writes its plots/CSVs to results/wgcna/ (its RDS/network pieces
+# go to data/wgcna/) -- matched here so module_members_consensus.csv is
 # actually found.
-tab_dir <- "wgcna/"
-plots_dir <- "wgcna/"
+results_dir <- "results/wgcna/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 # Read in 06's integrated, doublet-cluster-filtered object -------------------
 
@@ -41,7 +41,7 @@ counts_mat <- as(counts_mat, "dgCMatrix")
 obj <- CreateSeuratObject(counts = counts_mat, meta.data = meta, assay = "RNA")
 obj[["harmony"]] <- harmony
 
-mods <- read.csv(paste0(tab_dir, "module_members_consensus.csv"))
+mods <- read.csv(paste0(results_dir, "module_members_consensus.csv"))
 
 gene_sets <- list()
 
@@ -70,7 +70,7 @@ scores <- obj@meta.data %>%
   dplyr::select(matches("UCell_kNN|genotype|treatment|batch|sample"))
 
 write.csv(scores,
-          file = paste0(tab_dir, "module_scores_ucell_consensus.csv"))
+          file = paste0(results_dir, "module_scores_ucell_consensus.csv"))
 
 stats_for_plotting <- list()
 
@@ -91,7 +91,7 @@ for (j in seq_along(cols)){
   stats_for_plotting[[j]] <- multcomp::cld(emm, Letters = letters) %>%
     mutate(.group = str_remove_all(.group, " "))
 
-  sink(paste0(tab_dir, "lmer_stats_", colors[j], ".txt"))
+  sink(paste0(results_dir, "lmer_stats_", colors[j], ".txt"))
   cat("Model output")
   cat("\n")
   print(summary(lm))
@@ -143,7 +143,7 @@ p <- stats_df %>%
         strip.text = element_text(color = "white", face = "bold"),
         strip.background = element_rect(fill = "black"))
 ggsave(p,
-       filename = paste0(plots_dir, "lmer_stats.png"),
+       filename = paste0(results_dir, "lmer_stats.png"),
        units = "in", dpi = 600,
        height = 7,
        width = 12)

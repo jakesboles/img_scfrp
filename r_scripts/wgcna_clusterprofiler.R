@@ -6,10 +6,8 @@ library(msigdbr)
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-# wgcna.R writes its own outputs directly to wgcna/ (not data/plots/
-# tab_data/wgcna/).
-plots_dir <- "wgcna/"
-tab_dir <- "wgcna/"
+# wgcna.R writes its plots/CSVs to results/wgcna/.
+results_dir <- "results/wgcna/"
 
 # Prep gene sets ----------------------------------------------------------
 
@@ -30,7 +28,7 @@ t2g <- rbind(go_t2g, m_t2g)
 
 # Get module members & run analyses ------------------------------------------------------
 
-df <- read.csv(paste0(tab_dir, "module_members_consensus.csv"))
+df <- read.csv(paste0(results_dir, "module_members_consensus.csv"))
 
 background <- df$gene_name %>% unique()
 
@@ -56,11 +54,11 @@ for (j in seq_along(modules)){
                  color = "p.adjust",
                  size = "GeneRatio")
     ggsave(p,
-           filename = paste0(plots_dir, "path_enrich_consensus_", modules[j], ".png"),
+           filename = paste0(results_dir, "path_enrich_consensus_", modules[j], ".png"),
            units = "in", dpi = 600,
            height = 10, width = 8)
   }
 
   write.csv(as.data.frame(em@result),
-            file = paste0(tab_dir, "path_enrich_consensus_", modules[j], ".csv"))
+            file = paste0(results_dir, "path_enrich_consensus_", modules[j], ".csv"))
 }

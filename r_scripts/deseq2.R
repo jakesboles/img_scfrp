@@ -31,8 +31,8 @@ suppressMessages({
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-tab_dir <- "tab_data/deseq2/"
-dir.create(tab_dir, showWarnings = F, recursive = T)
+results_dir <- "results/deseq2/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 # Read in 06's integrated, doublet-cluster-filtered counts + metadata -------
 
@@ -112,7 +112,7 @@ for (i in seq_along(refs)){
 
     res_tbl <- as.data.frame(res)
     write.csv(res_tbl,
-              file = paste0(tab_dir, query_group, "_vs_", ref_group, ".csv"))
+              file = paste0(results_dir, query_group, "_vs_", ref_group, ".csv"))
 
     shrunk <- lfcShrink(dds,
                         res = res,
@@ -121,7 +121,7 @@ for (i in seq_along(refs)){
 
     shrunk_tbl <- as.data.frame(shrunk)
     write.csv(shrunk_tbl,
-              file = paste0(tab_dir, "lfc_shrunk_", query_group, "_vs_", ref_group, ".csv"))
+              file = paste0(results_dir, "lfc_shrunk_", query_group, "_vs_", ref_group, ".csv"))
   }
 
 }

@@ -33,8 +33,8 @@ message2 <- function(text){
 
 setwd("/projects/b1169/boles/img_scfrp")
 
-plots_dir <- "plots/03_doubletfinder/"
-dir.create(plots_dir, showWarnings = F, recursive = T)
+results_dir <- "results/03_doubletfinder/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 data_out_dir <- "data/03_doubletfinder/"
 dir.create(paste0(data_out_dir, "bpcells_persample/"), showWarnings = F, recursive = T)
@@ -178,7 +178,7 @@ run_doubletfinder <- function(s, doublet_rate, sample_id){
     ggtitle("Adjusted for Homotypic Proportion")
   p <- p1 + p2 + plot_layout(ncol = 2, nrow = 1, guides = "collect")
 
-  ggsave(p, filename = paste0(plots_dir, sample_id, "_doublet_umap.png"),
+  ggsave(p, filename = paste0(results_dir, sample_id, "_doublet_umap.png"),
          units = "in", dpi = 600, height = 5, width = 10, bg = "white")
 
   return(s)

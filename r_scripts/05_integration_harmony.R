@@ -36,8 +36,8 @@ setwd("/projects/b1169/boles/img_scfrp")
 
 options(future.globals.maxSize = 64000 * (1024^2))
 
-plots_dir <- "plots/05_integration/"
-dir.create(plots_dir, showWarnings = F, recursive = T)
+results_dir <- "results/05_integration/"
+dir.create(results_dir, showWarnings = F, recursive = T)
 
 data_out_dir <- "data/05_integration/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)
@@ -134,7 +134,7 @@ make_umaps <- function(reduction, type){
     plot_layout(ncol = 2)
 
   ggsave(p,
-         filename = paste0(plots_dir, type, "_umaps.png"),
+         filename = paste0(results_dir, type, "_umaps.png"),
          units = "in", dpi = 600,
          height = 8,
          width = 10)
