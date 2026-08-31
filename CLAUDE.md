@@ -383,7 +383,14 @@ reorg and should be fixed to match.
     past the original script's working section that referenced an
     undefined `modules` variable (a leftover half-finished edit). Fixed
     the same `orig.ident`-vs-`sample` and `harmony_pca`-vs-`harmony`
-    naming issues here too. `wgcna_viz.R` (module radar plot,
+    naming issues here too. Its trailing quick-eyeball `VlnPlot_scCustom()`
+    call (an unsaved, interactive-only sanity check against a hardcoded
+    example module name) is now guarded by `if (interactive())` so
+    `jobs/run_wgcna_stats.sh` can run it headless via `Rscript` without
+    that line erroring out (no display to print to, and the hardcoded
+    module color may not exist in a given run's actual module set) after
+    everything that actually gets saved has already been written.
+    `wgcna_viz.R` (module radar plot,
     module-module correlogram, per-sample module eigengene dot/violin
     plots) reconstructs from `06`'s pieces plus `wgcna.R`'s
     `metadata.rds`/`misc_wgcna_consensus.rds`, explicitly setting
