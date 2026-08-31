@@ -1,12 +1,18 @@
-# Milo (miloR) differential neighborhood-abundance testing: each genotype
-# vs KOLF (the parental line), collapsed across treatment. Adapted from a
-# working script from another project -- that script's contrast variable
-# ("Group"), reduced dims ("INTEGRATED_PCA"/"INTEGRATED_UMAP2"), and PC
-# count (d = 13) are specific to that project's own object and don't apply
-# here; this version is rebuilt against this project's own metadata schema
-# (genotype/treatment/batch/sample/condition, see CLAUDE.md's metadata
-# table) and established PC count (dims = 1:10, matching every other stage
-# from 04_norm_pca.R on).
+# Milo (miloR) differential neighborhood-abundance testing, two analyses on
+# the same neighborhoods:
+#   1. Each non-KOLF genotype vs KOLF, collapsed across treatment.
+#   2. Genotype x treatment interaction -- for each non-KOLF genotype and
+#      each non-Control treatment, whether that genotype's *shift* in
+#      neighborhood abundance under treatment differs from KOLF's shift
+#      under the same treatment (not just a baseline genotype difference,
+#      already covered by analysis 1).
+# Adapted from a working script from another project -- that script's
+# contrast variable ("Group"), reduced dims ("INTEGRATED_PCA"/
+# "INTEGRATED_UMAP2"), and PC count (d = 13) are specific to that
+# project's own object and don't apply here; this version is rebuilt
+# against this project's own metadata schema (genotype/treatment/batch/
+# sample/condition, see CLAUDE.md's metadata table) and established PC
+# count (dims = 1:10, matching every other stage from 04_norm_pca.R on).
 #
 # Loads 06_qc2.R's BPCells counts + metadata + harmony/harmony_umap
 # reductions (not a monolithic object) -- only counts are needed to
@@ -115,7 +121,12 @@ milo <- calcNhoodDistance(milo,
                           d = 10,
                           reduced.dim = "HARMONY")
 
-# Design: genotype vs KOLF, collapsed across treatment ------------------------
+message2("Building neighborhood graph for plotting")
+
+# Shared by both analyses below -- doesn't depend on either design/contrast.
+milo <- buildNhoodGraph(milo)
+
+# Analysis 1: genotype vs KOLF, collapsed across treatment --------------------
 
 design <- data.frame(colData(milo))[, c("sample", "genotype", "batch")]
 design <- distinct(design)
@@ -178,17 +189,85 @@ for (g in test_genotypes) {
   da_results[[g]] <- res
 }
 
-# Neighborhood graph + DA plots ------------------------------------------------
-
-message2("Building neighborhood graph for plotting")
-
-milo <- buildNhoodGraph(milo)
+# Analysis 1 DA plots ----------------------------------------------------------
 
 for (g in test_genotypes) {
   p <- plotNhoodGraphDA(milo, da_results[[g]], layout = "HARMONY_UMAP", alpha = 0.1) +
     ggtitle(paste0(g, " vs KOLF"))
   ggsave(p,
          filename = paste0(results_dir, "da_umap_", g, "_vs_KOLF.png"),
+         units = "in", dpi = 600, height = 6, width = 7)
+}
+
+# Analysis 2: genotype x treatment interaction --------------------------------
+#
+# For each non-KOLF genotype G and each non-Control treatment T, tests
+# (conditionG_T - conditionG_Control) - (conditionKOLF_T - conditionKOLF_Control)
+# -- i.e. whether G's shift in neighborhood abundance under T differs from
+# KOLF's shift under the same T, rather than a baseline genotype
+# difference (that's analysis 1 above). Reuses the same neighborhoods/
+# graph/distances built once above -- only the design and contrasts
+# change.
+#
+# design = ~ 0 + condition + batch: same `0 +` reasoning as analysis 1,
+# now giving `condition` (the existing 15-level genotype x treatment
+# factor from 02_qc.R) a full set of per-level columns so the interaction
+# contrasts below can reference all four terms directly.
+
+design_interaction <- data.frame(colData(milo))[, c("sample", "condition", "batch")]
+design_interaction <- distinct(design_interaction)
+rownames(design_interaction) <- design_interaction$sample
+
+# condition/treatment are already correctly-leveled factors as of
+# 02_qc.R, carried through unchanged -- same explicit stop()-guard
+# reasoning as genotype above, rather than re-deriving levels from a
+# separate hardcoded list.
+expected_condition_levels <- paste0(rep(expected_genotype_levels, each = 3),
+                                    "_", rep(c("Control", "Myelin", "Asyn"), times = 5))
+if (!is.factor(design_interaction$condition) || !setequal(levels(design_interaction$condition), expected_condition_levels)) {
+  stop("condition didn't survive the SCE round-trip as the expected factor -- check colData(milo)$condition.")
+}
+
+design_interaction$batch <- factor(str_remove_all(as.character(design_interaction$batch), " "))
+
+test_treatments <- c("Myelin", "Asyn")
+
+da_interaction_results <- list()
+
+for (g in test_genotypes) {
+  for (t in test_treatments) {
+
+    label <- paste0(g, "_", t)
+    message2(paste0(label, " interaction vs KOLF"))
+
+    contrast <- paste0("(condition", g, "_", t, " - condition", g, "_Control) - ",
+                       "(conditionKOLF_", t, " - conditionKOLF_Control)")
+
+    res <- testNhoods(milo,
+                      design = ~ 0 + condition + batch,
+                      design.df = design_interaction,
+                      model.contrasts = contrast,
+                      fdr.weighting = "graph-overlap",
+                      norm.method = "TMM")
+
+    message(paste0(label, " interaction -- neighborhoods at SpatialFDR < 0.05:"))
+    print(table(res$SpatialFDR < 0.05))
+
+    write.csv(res,
+              file = paste0(results_dir, "da_interaction_", label, "_vs_KOLF.csv"),
+              row.names = F)
+
+    da_interaction_results[[label]] <- res
+  }
+}
+
+# Analysis 2 DA plots ------------------------------------------------------
+
+for (label in names(da_interaction_results)) {
+  p <- plotNhoodGraphDA(milo, da_interaction_results[[label]], layout = "HARMONY_UMAP", alpha = 0.1) +
+    ggtitle(paste0(label, " interaction vs KOLF"))
+  ggsave(p,
+         filename = paste0(results_dir, "da_umap_interaction_", label, "_vs_KOLF.png"),
          units = "in", dpi = 600, height = 6, width = 7)
 }
 
@@ -209,6 +288,7 @@ saveRDS(list(nhoods = nhoods(milo),
        file = paste0(data_out_dir, "milo_nhoods.rds"))
 
 saveRDS(design, file = paste0(data_out_dir, "design.rds"))
+saveRDS(design_interaction, file = paste0(data_out_dir, "design_interaction.rds"))
 
 # Downstream re-plotting should reconstruct from these on-disk pieces
 # rather than rerunning makeNhoods()/countCells()/calcNhoodDistance():

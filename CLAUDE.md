@@ -448,10 +448,21 @@ reorg and should be fixed to match.
     outright as dead weight rather than moved.
 
 13. **`r_scripts/milo.R`** — Milo (`miloR`) differential neighborhood-
-    abundance testing: each non-KOLF genotype vs `KOLF`, collapsed across
+    abundance testing, two analyses on the same neighborhoods (built once
+    and reused): **(1)** each non-KOLF genotype vs `KOLF`, collapsed across
     treatment (`design = ~ 0 + genotype + batch`, `batch` as a covariate
     for the same reason as `deseq2.R`'s design — each genotype has 4 real
-    batch replicates once pooled across treatment). First-pass script,
+    batch replicates once pooled across treatment); **(2)** genotype x
+    treatment interaction — for each non-KOLF genotype and each non-Control
+    treatment, whether that genotype's *shift* in neighborhood abundance
+    under treatment differs from KOLF's shift under the same treatment
+    (`design = ~ 0 + condition + batch`, contrast `(conditionG_T -
+    conditionG_Control) - (conditionKOLF_T - conditionKOLF_Control)` per
+    genotype x treatment pair — 4 genotypes x 2 treatments = 8 tests). This
+    was proposed via `AskUserQuestion`-style writeup in chat before being
+    built, since it's a real modeling-choice fork (baseline genotype
+    difference vs. genotype-specific treatment response) — the user
+    confirmed this framing before it was implemented. First-pass script,
     adapted from a working script from an unrelated other project (its
     contrast variable, reduced-dim names, and PC count were specific to
     that project's own object and don't apply here) — rebuilt against this
@@ -468,21 +479,26 @@ reorg and should be fixed to match.
     a printed `reducedDimNames(sce)` check rather than assumed, since this
     is the first script in this pipeline to go through an SCE conversion;
     if a future `miloR`/Seurat version changes that casing behavior, this
-    is the place to look. Explicit `stop()` guard on `genotype` actually
-    surviving the `colData()`/`data.frame()` round-trip as the expected
-    factor, rather than re-deriving its levels from a separately-maintained
-    hardcoded list (the class of bug that bit `deseq2.R`'s `treatment`
-    levels). `batch`'s `"Batch 1"`-style labels are sanitized (spaces
-    stripped) before going into the design matrix, since `testNhoods()`'s
-    internal `edgeR`/`limma` contrast building wants syntactically valid
-    column names. Saves only what this stage adds — `data/milo/milo_nhoods.rds`
+    is the place to look. Explicit `stop()` guard on `genotype`/`condition`
+    actually surviving the `colData()`/`data.frame()` round-trip as the
+    expected factor, rather than re-deriving levels from a separately-
+    maintained hardcoded list (the class of bug that bit `deseq2.R`'s
+    `treatment` levels) — `condition`'s expected levels are derived from
+    the same `expected_genotype_levels` vector analysis 1 already checked
+    against, not a second independent hardcoded list. `batch`'s
+    `"Batch 1"`-style labels are sanitized (spaces stripped) before going
+    into either design matrix, since `testNhoods()`'s internal
+    `edgeR`/`limma` contrast building wants syntactically valid column
+    names. Saves only what this stage adds — `data/milo/milo_nhoods.rds`
     (neighborhoods/counts/graph/distances; neighborhood-scale, not cell x
-    gene-matrix scale, so one RDS is appropriate) and `design.rds` — not
-    the counts matrix, unchanged from `06_qc2.R`. **Not yet run** — some
-    `miloR` accessor names (`nhoodDistances()`, `nhoodGraph()`) and the
-    `HARMONY`/`HARMONY_UMAP` capitalization assumption are believed
-    correct but unverified; expect to need small fixes on first execution.
-    No `.sh` job script yet — not asked for.
+    gene-matrix scale, so one RDS is appropriate), `design.rds`, and
+    `design_interaction.rds` — not the counts matrix, unchanged from
+    `06_qc2.R`. **Not yet run** — some `miloR` accessor names
+    (`nhoodDistances()`, `nhoodGraph()`) and the `HARMONY`/`HARMONY_UMAP`
+    capitalization assumption are believed correct but unverified; expect
+    to need small fixes on first execution. The user plans to first try
+    running just analysis 1 interactively, and only attempt analysis 2 if
+    that succeeds. No `.sh` job script yet — not asked for.
 
 **No more stale duplicates as of the `r_scripts/`/`jobs/`/`results/` reorg**:
 `preprocessing/`, `wgcna/`, and `deseq2/` (as directories) no longer exist
@@ -679,13 +695,12 @@ anything about sequencing batch structure that doesn't care about the
 ## Open items / things worth revisiting
 
 - `r_scripts/milo.R` hasn't been run yet — first pass, adapted from another
-  project's script. Verify on first run: the `HARMONY`/`HARMONY_UMAP`
-  reduction-name capitalization assumption after `as.SingleCellExperiment()`,
-  and the `nhoodDistances()`/`nhoodGraph()` accessor names. A treatment x
-  genotype interaction analysis (contrasting `condition` levels instead of
-  `genotype`, e.g. `(GALC_Myelin - GALC_Control) - (KOLF_Myelin -
-  KOLF_Control)`) was proposed but not yet implemented — see chat history
-  for the writeup; implement once the user confirms they want it.
+  project's script, now with both the genotype-vs-KOLF and genotype x
+  treatment interaction analyses implemented (see the pipeline-stage entry
+  above). Verify on first run: the `HARMONY`/`HARMONY_UMAP` reduction-name
+  capitalization assumption after `as.SingleCellExperiment()`, and the
+  `nhoodDistances()`/`nhoodGraph()` accessor names. The user plans to try
+  analysis 1 alone first, interactively, before attempting both.
 - `r_scripts/deseq2_gsea.R` has not been reviewed for correctness the way
   `deseq2.R` was — only its paths were repointed for the `results/` reorg.
   Worth the same scrutiny (it reads `deseq2.R`'s per-`condition`
