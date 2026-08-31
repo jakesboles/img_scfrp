@@ -447,6 +447,43 @@ reorg and should be fixed to match.
     (same `~ batch + sample` / lowercase-`treatment` bugs), was deleted
     outright as dead weight rather than moved.
 
+13. **`r_scripts/milo.R`** — Milo (`miloR`) differential neighborhood-
+    abundance testing: each non-KOLF genotype vs `KOLF`, collapsed across
+    treatment (`design = ~ 0 + genotype + batch`, `batch` as a covariate
+    for the same reason as `deseq2.R`'s design — each genotype has 4 real
+    batch replicates once pooled across treatment). First-pass script,
+    adapted from a working script from an unrelated other project (its
+    contrast variable, reduced-dim names, and PC count were specific to
+    that project's own object and don't apply here) — rebuilt against this
+    project's own metadata schema and established PC count (`dims = 1:10`).
+    Loads `06_qc2.R`'s BPCells counts + `harmony`/`harmony_umap` (no
+    normalized `data` layer — Milo's core machinery never touches
+    expression values, only the neighbor graph/reduced-dim coordinates/
+    metadata). Recomputes `FindNeighbors()` on the `harmony` reduction
+    (`06_qc2.R` doesn't save its own `Graph` object) immediately before
+    handing it to `buildFromAdjacency()`, reusing the same neighbor
+    structure the rest of the pipeline is built on rather than letting
+    `miloR::buildGraph()` build an independent one. **`as.SingleCellExperiment()`
+    upper-cases reduction names** (`harmony` → `"HARMONY"`) — confirmed via
+    a printed `reducedDimNames(sce)` check rather than assumed, since this
+    is the first script in this pipeline to go through an SCE conversion;
+    if a future `miloR`/Seurat version changes that casing behavior, this
+    is the place to look. Explicit `stop()` guard on `genotype` actually
+    surviving the `colData()`/`data.frame()` round-trip as the expected
+    factor, rather than re-deriving its levels from a separately-maintained
+    hardcoded list (the class of bug that bit `deseq2.R`'s `treatment`
+    levels). `batch`'s `"Batch 1"`-style labels are sanitized (spaces
+    stripped) before going into the design matrix, since `testNhoods()`'s
+    internal `edgeR`/`limma` contrast building wants syntactically valid
+    column names. Saves only what this stage adds — `data/milo/milo_nhoods.rds`
+    (neighborhoods/counts/graph/distances; neighborhood-scale, not cell x
+    gene-matrix scale, so one RDS is appropriate) and `design.rds` — not
+    the counts matrix, unchanged from `06_qc2.R`. **Not yet run** — some
+    `miloR` accessor names (`nhoodDistances()`, `nhoodGraph()`) and the
+    `HARMONY`/`HARMONY_UMAP` capitalization assumption are believed
+    correct but unverified; expect to need small fixes on first execution.
+    No `.sh` job script yet — not asked for.
+
 **No more stale duplicates as of the `r_scripts/`/`jobs/`/`results/` reorg**:
 `preprocessing/`, `wgcna/`, and `deseq2/` (as directories) no longer exist
 at all — every `.R` script from all three moved into `r_scripts/`, every
@@ -641,6 +678,14 @@ anything about sequencing batch structure that doesn't care about the
 
 ## Open items / things worth revisiting
 
+- `r_scripts/milo.R` hasn't been run yet — first pass, adapted from another
+  project's script. Verify on first run: the `HARMONY`/`HARMONY_UMAP`
+  reduction-name capitalization assumption after `as.SingleCellExperiment()`,
+  and the `nhoodDistances()`/`nhoodGraph()` accessor names. A treatment x
+  genotype interaction analysis (contrasting `condition` levels instead of
+  `genotype`, e.g. `(GALC_Myelin - GALC_Control) - (KOLF_Myelin -
+  KOLF_Control)`) was proposed but not yet implemented — see chat history
+  for the writeup; implement once the user confirms they want it.
 - `r_scripts/deseq2_gsea.R` has not been reviewed for correctness the way
   `deseq2.R` was — only its paths were repointed for the `results/` reorg.
   Worth the same scrutiny (it reads `deseq2.R`'s per-`condition`
