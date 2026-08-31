@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --account b1169
-#SBATCH --partition b1169
+#SBATCH --account b1042
+#SBATCH --partition genomics
 #SBATCH --job-name wgcna_stats
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 16
 #SBATCH --mem 96G
-#SBATCH --time 8:00:00
+#SBATCH --time 24:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%j.log
 #SBATCH --verbose
 #
