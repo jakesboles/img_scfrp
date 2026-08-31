@@ -147,17 +147,3 @@ ggsave(p,
        units = "in", dpi = 600,
        height = 7,
        width = 12)
-
-# Quick eyeball plot of one module's smoothed score by sample -- not saved,
-# meant to be run interactively; swap in whichever module color you want a
-# closer look at. Guarded by interactive() so a batch/Rscript run (e.g. via
-# run_wgcna_stats.sh) doesn't fail here -- there's no display to print to,
-# and "greenyellow" is just an example module name that may not exist in
-# any given run's actual module set.
-if (interactive()) {
-  VlnPlot_scCustom(obj,
-                   features = c("greenyellow_UCell_kNN"),
-                   group.by = "sample",
-                   pt.size = 0) +
-    NoLegend()
-}
