@@ -42,6 +42,7 @@ suppressMessages({
   library(dittoSeq)
   library(patchwork)
   library(BPCells)
+  library(presto)
 })
 
 message2 <- function(text){
@@ -60,16 +61,6 @@ data_out_dir <- "data/07_clustering/"
 dir.create(data_out_dir,
            showWarnings = F,
            recursive = T)
-
-# FindAllMarkers() uses the much faster presto backend automatically when
-# it's installed, and the much slower base-R per-gene/per-cluster loop
-# otherwise -- checked explicitly since this is the single biggest lever
-# on runtime here, bigger than anything else in this script.
-if (!requireNamespace("presto", quietly = TRUE)) {
-  warning("Package 'presto' is not installed -- FindAllMarkers() will fall ",
-          "back to a much slower implementation. Install with: ",
-          "remotes::install_github('immunogenomics/presto')")
-}
 
 # Build object from 06 --------------------------------------------------
 
