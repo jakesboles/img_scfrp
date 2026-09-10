@@ -500,6 +500,56 @@ reorg and should be fixed to match.
     running just analysis 1 interactively, and only attempt analysis 2 if
     that succeeds. No `.sh` job script yet — not asked for.
 
+14. **`r_scripts/07_clustering.R`** — clusters the whole-cohort object at
+    two resolutions (`res2`, `res0-4`) on the `harmony` reduction and runs
+    `FindAllMarkers()` for each, plus per-resolution UMAP/composition
+    plots (by genotype/batch/treatment/condition). Numbered `07` in the
+    pipeline's own file naming (comes right after `06_qc2.R`) but
+    documented here as entry 14 since that's the order it was actually
+    worked on in this file's chronological memory-dump style — don't read
+    the numbering as meaning it runs after `wgcna`/`deseq2`/`milo`; it
+    doesn't depend on any of them, only on `06_qc2.R`.
+    **Performance fix**: the user's own first draft handed
+    `obj[["RNA"]]$data` straight from `open_matrix_dir()` — a lazy,
+    on-disk, column-major/cell-major BPCells matrix — directly to
+    `FindAllMarkers()`, called twice (once per resolution). This is a
+    documented slow (in some Seurat versions, warned-about —
+    `satijalab/seurat#10365`) path: Wilcoxon marker testing needs per-gene
+    access across all cells, the wrong direction for a matrix stored
+    cell-major. The user suggested investigating a transpose-based fix
+    before `FindAllMarkers()`; researched via `WebSearch` rather than
+    guessed (presto's `wilcoxauc()` — the fast backend Seurat's
+    `FindAllMarkers()` uses automatically when installed — expects
+    genes-as-rows/cells-as-columns, i.e. no transpose relative to
+    Seurat's native layout; BPCells' own docs recommend a transpose
+    specifically for keeping a matrix lazy/on-disk at a scale that can't
+    fit in memory, which doesn't apply once you fully materialize).
+    Landed on: materialize `data` once, up front, outside the resolution
+    loop (a single one-pass read happens regardless of orientation once
+    you're materializing anyway) — same established pattern as
+    `wgcna.R`/`wgcna_stats.R`/`milo.R` for handing BPCells data to a
+    non-BPCells-aware tool. `counts` is deliberately left as lazy
+    BPCells — clustering/marker-finding never touch it, so materializing
+    it would cost memory for nothing. Also added an explicit
+    `requireNamespace("presto")` check with a `warning()` if missing,
+    since that's a bigger lever on `FindAllMarkers()` speed than anything
+    else in the script (presto vs. base-R fallback). Also fixed a real
+    bug in the user's draft: the final `saveRDS()` referenced an
+    undefined `data_dir` (should have been `data_out_dir`) — would have
+    errored at the very last line, after all the expensive clustering/
+    marker-finding work was already done. **Two further speed options
+    raised with the user but not applied without confirmation** (both
+    change what gets computed/reported, not just how fast): restricting
+    `FindAllMarkers(features = VariableFeatures(obj))` (~10x fewer genes
+    tested, but genuinely excludes non-variable markers from the output);
+    splitting the two resolutions into a 2-task SLURM array for
+    wall-clock parallelism (real gain, adds the complexity of computing/
+    caching the neighbor graph once for both tasks to share rather than
+    recomputing it twice). `jobs/run_07_clustering.sh` added to run this
+    non-interactively (`b1169`/`b1169`, 128G/12h — generous since this is
+    the first run of the fixed version and presto's actual speedup here
+    hasn't been measured yet).
+
 **No more stale duplicates as of the `r_scripts/`/`jobs/`/`results/` reorg**:
 `preprocessing/`, `wgcna/`, and `deseq2/` (as directories) no longer exist
 at all — every `.R` script from all three moved into `r_scripts/`, every
@@ -694,6 +744,12 @@ anything about sequencing batch structure that doesn't care about the
 
 ## Open items / things worth revisiting
 
+- `r_scripts/07_clustering.R` hasn't been run yet with the materialization
+  fix — verify `FindAllMarkers()` is actually fast now (and that `presto`
+  is installed; the script warns but doesn't install it). The
+  variable-features-restriction and 2-task-array ideas were raised but not
+  applied — implement if the user wants either after seeing how fast the
+  fixed version already is.
 - `r_scripts/milo.R` hasn't been run yet — first pass, adapted from another
   project's script, now with both the genotype-vs-KOLF and genotype x
   treatment interaction analyses implemented (see the pipeline-stage entry
