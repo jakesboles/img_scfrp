@@ -147,3 +147,6 @@ ggsave(p,
        units = "in", dpi = 600,
        height = 7,
        width = 12)
+
+write.csv(stats_for_plotting,
+          file = paste0(results_dir, "lmer_stats.csv"))
