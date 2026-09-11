@@ -4,7 +4,7 @@
 #SBATCH --job-name 07_clustering
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 16
-#SBATCH --mem 128G
+#SBATCH --mem 300G
 #SBATCH --time 12:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%j.log
 #SBATCH --verbose
