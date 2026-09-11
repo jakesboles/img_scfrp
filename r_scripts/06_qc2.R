@@ -138,7 +138,7 @@ obj <- obj %>%
   FindClusters(method = "igraph",
                algorithm = 4,
                resolution = 2,
-               cluster.name = "doublet_qc_cluster",
+               cluster.name = "qc_cluster",
                graph.name = "RNA_snn")
 
 p1 <- DimPlot_scCustom(obj,
@@ -150,7 +150,7 @@ p2 <- DimPlot_scCustom(obj,
 
 p3 <- dittoBarPlot(obj,
                    var = "DF.adj",
-                   group.by = "doublet_qc_cluster")
+                   group.by = "qc_cluster")
 
 design <- "
 AABB
@@ -165,25 +165,50 @@ ggsave(p,
        units = "in", dpi = 600,
        height = 10, width = 12)
 
-# Remove doublet-enriched clusters -------------------------------------------
+# Identify IBA-1-low clusters and flag for removal ------------------------
 
-# Chosen by eye from clusters_by_doublets.png above (clusters visibly
-# dominated by DF.adj == "Doublet" cells) -- a manual QC judgment call,
-# not derivable programmatically, and specific to this exact
-# resolution = 2 clustering. Re-inspect and update this list if upstream
-# data changes and this script is rerun.
+for (i in c("AIF1", "CSF1R", "nCount_RNA", "nFeature_RNA", "percent_mito")){
+  
+  p <- VlnPlot_scCustom(obj,
+                   group.by = "qc_cluster",
+                   features = i,
+                   pt.size = 0) + 
+    NoLegend()
+  
+  if (i %in% c("nCount_RNA", "nFeature_RNA")) {p <- p + scale_y_log10()}
+  
+  ggsave(p,
+         filename = paste0(results_dir, i, "_vln.png"),
+         units = "in", dpi = 600,
+         height = 4, width = 10)
+  
+  p <- FeaturePlot_scCustom(obj,
+                       reduction = "harmony_umap",
+                       features = i)
+  ggsave(p,
+         filename = paste0(results_dir, i, "_umap.png"),
+         units = "in", dpi = 600,
+         height = 5, width = 6)
+}
+
+
+# Remove doublet-enriched and non-microglial clusters -------------------------
+
 doublet_clusters <- c(31, 35, 36)
+non_microglia_clusters <- c(26, 33)
 
-message2(paste0("Removing clusters: ", paste(doublet_clusters, collapse = ", ")))
+remove <- c(doublet_clusters, non_microglial_clusters)
+
+message2(paste0("Removing clusters: ", paste(remove, collapse = ", ")))
 
 removed_counts <- obj@meta.data %>%
-  count(doublet_qc_cluster) %>%
-  filter(doublet_qc_cluster %in% doublet_clusters)
+  count(qc_cluster) %>%
+  filter(qc_cluster %in% remove)
 write.csv(removed_counts,
-          file = paste0(results_dir, "removed_doublet_clusters.csv"),
+          file = paste0(results_dir, "removed_clusters.csv"),
           row.names = F)
 
-obj <- subset(obj, subset = !(doublet_qc_cluster %in% doublet_clusters))
+obj <- subset(obj, subset = !(qc_cluster %in% remove))
 
 # Normalize, scale, run PCA --------------------------------------------------
 
