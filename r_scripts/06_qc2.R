@@ -197,7 +197,7 @@ for (i in c("AIF1", "CSF1R", "nCount_RNA", "nFeature_RNA", "percent_mito")){
 doublet_clusters <- c(31, 35, 36)
 non_microglia_clusters <- c(26, 33)
 
-remove <- c(doublet_clusters, non_microglial_clusters)
+remove <- c(doublet_clusters, non_microglia_clusters)
 
 message2(paste0("Removing clusters: ", paste(remove, collapse = ", ")))
 
