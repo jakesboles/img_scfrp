@@ -48,12 +48,12 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
-fastq/*
-logs/*
-cellranger/*
-cellbender/*
-downsampled_fastq/*
-data/*
+*/fastq/*
+*/logs/*
+*/cellranger/*
+*/cellbender/*
+*/downsampled_fastq/*
+*/data/*
 *.tar.gz
 envs/*
 
