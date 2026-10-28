@@ -18,7 +18,7 @@ suppressMessages({
   library(BPCells)
 })
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 # wgcna.R writes its plots/CSVs to results/wgcna/ (its RDS/network pieces
 # go to data/wgcna/) -- matched here so module_members_consensus.csv is

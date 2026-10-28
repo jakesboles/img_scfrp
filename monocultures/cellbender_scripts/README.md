@@ -15,7 +15,7 @@ authoritative record of what's actually installed:
 
 `make_cellbender_env.sh` (fixed from Thomas's original `CellbenderEnv2.sh`)
 builds a fresh working environment under this project's own directory
-(`/projects/b1169/boles/img_scfrp/envs/cellbender`) rather than a
+(`/projects/b1169/boles/img_scfrp/monocultures/envs/cellbender`) rather than a
 colleague's, in case that's ever needed again — not guaranteed
 byte-identical to Thomas's, but `real_export.yml` is there if exact
 reproduction matters.

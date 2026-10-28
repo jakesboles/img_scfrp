@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node 4
 #SBATCH --mem 16G
 #SBATCH --time 48:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/monocultures/logs/%x_%A.log
 #SBATCH --verbose
 
 # Runs in Cell Ranger cluster mode: this job itself only hosts the
@@ -15,7 +15,7 @@
 # cellranger_scripts/test_cluster_mode.sh to validate the template before
 # running this.
 
-cd /projects/b1169/boles/img_scfrp/cellranger
+cd /projects/b1169/boles/img_scfrp/monocultures/cellranger
 
 /projects/p31535/boles/cellranger-10.0.0/cellranger multi \
 --id "iMG4" \

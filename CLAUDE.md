@@ -27,22 +27,25 @@ top-level arms sharing one project/repo:
   Ranger `multi` configs); no pipeline built yet. See the dedicated
   "Coculture arm" section below for what's known/open so far.
 
-**Known issue from this restructure, not yet fixed (flagged to the user,
-blocking)**: every `.R`/`.sh` file under `monocultures/` still hardcodes
-the *pre-restructure* repo root (`setwd("/projects/b1169/boles/img_scfrp")`
-in all 14 `r_scripts/*.R` files; `REPO="/projects/b1169/boles/img_scfrp"` in
-`cellbender_scripts/*.sh`; absolute `Rscript
-/projects/b1169/boles/img_scfrp/r_scripts/...` lines in every `jobs/*.sh`;
-same pattern in `cellranger_scripts/*.sh` and `seqtk/*.sh`) instead of the
-new `/projects/b1169/boles/img_scfrp/monocultures`. Since every relative
-path inside these scripts resolves off whatever `setwd()`/`REPO` points at,
-**nothing under `monocultures/` can currently run correctly on the HPC** —
-job scripts' `Rscript` target paths point at files that no longer exist
-there, and any R script run directly would silently read/write against the
-old, now-undifferentiated root instead of `monocultures/`. This needs a
-mechanical `/monocultures` path-segment insertion across ~30 files before
-any monoculture job can be (re)run. Not fixed yet — flag it again if picked
-up mid-task and it hasn't been addressed.
+**Known issue from this restructure — fixed**: every `.R`/`.sh`/manifest
+file under `monocultures/` originally still hardcoded the *pre-restructure*
+repo root (`setwd("/projects/b1169/boles/img_scfrp")` in all 14
+`r_scripts/*.R` files; `REPO="/projects/b1169/boles/img_scfrp"` in
+`cellbender_scripts/*.sh`/`seqtk/*.sh`; absolute `Rscript
+/projects/b1169/boles/img_scfrp/r_scripts/...` and `#SBATCH --output
+.../logs/...` lines in every `jobs/*.sh`/`cellranger_scripts/*.sh`; FASTQ
+paths baked into `cellranger_configs/*.csv` and `seqtk/downsample_manifest.txt`)
+instead of the new `/projects/b1169/boles/img_scfrp/monocultures`. Fixed by
+a mechanical `/monocultures` path-segment insertion across every affected
+file (committed directly to this branch, no PR, per the user's explicit
+request for this one change) — verified via a repo-wide grep that no
+`.../img_scfrp/<subdir>` reference lacking the `monocultures/` segment
+remains under `monocultures/`. One pre-existing, unrelated quirk left as-is:
+`seqtk/get_seqtk_proportions.R`'s `setwd("/gpfs/projects/b1169/boles/img_scfrp/monocultures/")`
+uses a `/gpfs/`-prefixed automounter path (different from every other
+script's plain `/projects/...`) — not a restructure artifact, just an
+existing inconsistency, so only the `/monocultures` segment was inserted
+into it, the `/gpfs/` prefix was left alone.
 
 **Also noted, low-priority**: a stale, byte-identical duplicate of
 `monocultures/samples.csv` still sits at repo root (`/samples.csv`) from
@@ -196,10 +199,9 @@ described here is otherwise unchanged.)
   `monocultures/logs/`, etc. for the existing pipeline, and (once built)
   `cocultures/data/`, `cocultures/logs/`, etc. for the new arm — matching
   the `.gitignore`'s `*/data/*`-style patterns (anchored one level deep,
-  deliberately, for exactly this split). **Currently broken**: every
-  script's hardcoded `setwd()`/`REPO=` still points at the old,
-  pre-restructure root rather than `.../img_scfrp/monocultures` — see the
-  top-level structure section above.
+  deliberately, for exactly this split). Every script's `setwd()`/`REPO=`
+  now points at `.../img_scfrp/monocultures` — see the top-level structure
+  section above for the fix.
 - Cell Ranger reference/probe-set files (shared across both arms, unaffected
   by the restructure): `/projects/p31535/boles/cellranger_references/`.
   Cell Ranger binary: `/projects/p31535/boles/cellranger-10.0.0/cellranger`.
@@ -214,10 +216,9 @@ described here is otherwise unchanged.)
 - R modules: `module load R/4.4.0`, `gcc/11.2.0`,
   `hdf5/1.14.1-2-gcc-12.3.0`.
 - Python/CellBender env: `module load python-miniconda3/4.10.3` +
-  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/envs/cellbender`
-  (this path, too, needs a `monocultures/` segment inserted per the broken-
-  paths issue above — `cellbender_scripts/run_all_cellbender_cpu.sh`'s
-  `REPO` variable drives it).
+  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/monocultures/envs/cellbender`
+  (`cellbender_scripts/run_all_cellbender_cpu.sh`'s `REPO` variable drives
+  this, now fixed).
 
 ## Pipeline stages, in order (monoculture arm — `monocultures/`)
 
@@ -839,7 +840,7 @@ anything about sequencing batch structure that doesn't care about the
   (`non_microglial_clusters` vs. `non_microglia_clusters`, self-fixed one
   commit later), and the repo-wide restructure itself leaving every
   script's `setwd()`/hardcoded repo-root path stale (see the top-level
-  structure section at the top of this file — not yet fixed).
+  structure section at the top of this file — now fixed).
 - **Ask before guessing on consequential/ambiguous decisions**, especially
   ones with real scientific stakes (e.g. DoubletFinder granularity) or that
   contradict something just-established as correct. The user explicitly
@@ -946,15 +947,11 @@ anything about sequencing batch structure that doesn't care about the
 
 ## Open items / things worth revisiting
 
-- **Blocking, repo-wide, not yet fixed**: every `.R`/`.sh` file under
-  `monocultures/` still hardcodes the pre-restructure repo root
-  (`setwd("/projects/b1169/boles/img_scfrp")` / `REPO=".../img_scfrp"` /
-  absolute `Rscript .../img_scfrp/r_scripts/...` lines) instead of the new
-  `/projects/b1169/boles/img_scfrp/monocultures`. Nothing under
-  `monocultures/` can currently be run on the HPC until this is fixed
-  (mechanical `/monocultures` insertion across ~30 files) — see the
-  top-level structure section at the top of this file for the full list of
-  affected files.
+- ~~Repo-wide stale `setwd()`/`REPO=` paths under `monocultures/` after the
+  restructure~~ — fixed (mechanical `/monocultures` path-segment insertion
+  across every affected `.R`/`.sh`/manifest file, committed directly to
+  this branch without a PR per the user's explicit request). See the
+  top-level structure section at the top of this file.
 - Stale, byte-identical duplicate of `samples.csv` still at repo root
   (should be deleted — `monocultures/samples.csv` is the real one).
 - `r_scripts/deseq2.R`'s `AggregateExpression()` call lost its explicit

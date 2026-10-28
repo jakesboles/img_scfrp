@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node 1
 #SBATCH --mem 30G
 #SBATCH --time 2:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a_%N.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/monocultures/logs/%x_%A_%a_%N.log
 #SBATCH --verbose
 #
 # Replaces Thomas's CellbenderBatch.sh + CellbenderInd.sh (one sbatch call
@@ -22,7 +22,7 @@
 #   Rscript cellbender_scripts/make_cellbender_params.R   # writes cell_quantities.csv
 #   bash cellbender_scripts/run_all_cellbender.sh  # self-submits the array job
 
-REPO="/projects/b1169/boles/img_scfrp"
+REPO="/projects/b1169/boles/img_scfrp/monocultures"
 CSV="$REPO/cellbender_scripts/cell_quantities.csv"
 
 if [ -z "$SLURM_ARRAY_TASK_ID" ]; then

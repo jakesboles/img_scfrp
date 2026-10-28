@@ -14,7 +14,7 @@ suppressMessages({
   library(BPCells)
 })
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 # wgcna.R writes its plots/CSVs to results/wgcna/ and its RDS/network
 # pieces to data/wgcna/.

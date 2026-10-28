@@ -32,7 +32,7 @@ message2 <- function(text){
   message(paste0(v1, text, v1))
 }
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 options(future.globals.maxSize = 64000 * (1024^2))
 

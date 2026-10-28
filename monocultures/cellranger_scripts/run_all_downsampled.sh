@@ -4,7 +4,7 @@
 # concurrently. iMG1 and iMG1_redo are two independent GEM wells from the
 # same batch-1 samples (see iMG1_redo_cellranger.sh) and are run separately.
 
-mkdir -p "/projects/b1169/boles/img_scfrp/logs" "/projects/b1169/boles/img_scfrp/cellranger"
+mkdir -p "/projects/b1169/boles/img_scfrp/monocultures/logs" "/projects/b1169/boles/img_scfrp/monocultures/cellranger"
 
 for pool in iMG1 iMG1_redo iMG3 iMG4; do
     sbatch "$(dirname "$0")/${pool}_cellranger_downsampled.sh"

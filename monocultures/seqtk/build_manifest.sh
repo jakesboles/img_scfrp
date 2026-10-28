@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-REPO="/projects/b1169/boles/img_scfrp"
+REPO="/projects/b1169/boles/img_scfrp/monocultures"
 MANIFEST="$REPO/seqtk/downsample_manifest.txt"
 TARGETS="$REPO/seqtk/downsample_targets.txt"
 

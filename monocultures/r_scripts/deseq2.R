@@ -29,7 +29,7 @@ suppressMessages({
   library(IHW)
 })
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 results_dir <- "results/deseq2/"
 dir.create(results_dir, showWarnings = F, recursive = T)

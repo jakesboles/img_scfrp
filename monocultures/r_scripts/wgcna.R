@@ -33,7 +33,7 @@ message2 <- function(text){
   message(paste0(v1, text, v1))
 }
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 # RDS/network pieces (BPCells-adjacent "data" convention) vs. plots/CSVs
 # ("results" convention) -- see CLAUDE.md's directory-structure note.
