@@ -14,7 +14,7 @@ module purge
 module load python-miniconda3/4.10.3
 module load mamba
 
-ENV_DIR="/projects/b1169/boles/img_scfrp/monocultures/envs/cellbender"
+ENV_DIR="/projects/b1169/boles/img_scfrp/envs/cellbender"
 mkdir -p "$(dirname "$ENV_DIR")"
 
 export PYTHONNOUSERSITE="literallyanyletters"

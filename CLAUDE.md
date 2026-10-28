@@ -194,14 +194,25 @@ described here is otherwise unchanged.)
 
 - Repo/storage lives at `/projects/b1169/boles/img_scfrp`. As of the Oct 28
   2026 restructure, `data/`, `results/`, `logs/`, `fastq/`,
-  `downsampled_fastq/`, `cellranger/`, `cellbender/`, `envs/` live one level
+  `downsampled_fastq/`, `cellranger/`, `cellbender/` live one level
   deeper, under the relevant arm — `monocultures/data/`,
   `monocultures/logs/`, etc. for the existing pipeline, and (once built)
   `cocultures/data/`, `cocultures/logs/`, etc. for the new arm — matching
   the `.gitignore`'s `*/data/*`-style patterns (anchored one level deep,
   deliberately, for exactly this split). Every script's `setwd()`/`REPO=`
   now points at `.../img_scfrp/monocultures` — see the top-level structure
-  section above for the fix.
+  section above for the fix. **`envs/` is the one exception** — it stayed
+  at the repo root (`/projects/b1169/boles/img_scfrp/envs/cellbender`, one
+  level *above* both `monocultures/` and `cocultures/`), shared by both
+  arms rather than duplicated per arm, since it's the same CellBender
+  install either way. The `.gitignore`'s own `envs/*` pattern (no `*/`
+  prefix, unlike every other line in that block) already reflected this —
+  an early pass at fixing monoculture's stale paths incorrectly nested
+  `envs/` under `monocultures/` anyway (missed that one inconsistency in
+  the `.gitignore`); corrected back to the shared root-level path in every
+  script that referenced it (`monocultures/cellbender_scripts/
+  run_all_cellbender*.sh`, `make_cellbender_env.sh`, `README.md`, and
+  `cocultures/cellbender_scripts/run_all_cellbender_cpu.sh`).
 - Cell Ranger reference/probe-set files (shared across both arms, unaffected
   by the restructure): `/projects/p31535/boles/cellranger_references/`.
   Cell Ranger binary: `/projects/p31535/boles/cellranger-10.0.0/cellranger`.
@@ -216,9 +227,10 @@ described here is otherwise unchanged.)
 - R modules: `module load R/4.4.0`, `gcc/11.2.0`,
   `hdf5/1.14.1-2-gcc-12.3.0`.
 - Python/CellBender env: `module load python-miniconda3/4.10.3` +
-  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/monocultures/envs/cellbender`
-  (`cellbender_scripts/run_all_cellbender_cpu.sh`'s `REPO` variable drives
-  this, now fixed).
+  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/envs/cellbender`
+  — note this path is **not** under `monocultures/` or `cocultures/` (see
+  the bullet above); both arms' `run_all_cellbender_cpu.sh` activate it by
+  this same absolute path, independent of their own `REPO` variable.
 
 ## Pipeline stages, in order (monoculture arm — `monocultures/`)
 
@@ -766,12 +778,13 @@ mirroring the monoculture arm's `make_cellbender_params.R` →
   Writes `cocultures/cellbender_scripts/cell_quantities.csv` in the same
   `pool_dir,sample,cells,droplets` format as monoculture's.
 - `run_all_cellbender_cpu.sh`: same self-resubmitting CPU-only pattern as
-  monoculture's (`b1042`/`genomics`, 16 cpus, 64G, 48h) — **reuses the
-  monoculture arm's already-built CellBender conda env**
-  (`monocultures/envs/cellbender`, activated by absolute path) rather than
-  building a second, redundant copy under `cocultures/envs/`, since it's
-  the identical CellBender/torch/CUDA version either way. Its own `REPO`
-  (`.../cocultures`) only governs this arm's own `cellranger/`/
+  monoculture's (`b1042`/`genomics`, 16 cpus, 64G, 48h) — activates the
+  **shared, repo-root-level CellBender conda env**
+  (`/projects/b1169/boles/img_scfrp/envs/cellbender`, one level above both
+  arms — see the HPC environment section above) by absolute path, rather
+  than building a second, redundant copy under `cocultures/envs/`, since
+  it's the identical CellBender/torch/CUDA version either way. Its own
+  `REPO` (`.../cocultures`) only governs this arm's own `cellranger/`/
   `cellbender/`/`logs/` paths, not the environment.
 - Usage, same as monoculture: `Rscript
   cellbender_scripts/make_cellbender_params.R` then `bash

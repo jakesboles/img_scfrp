@@ -14,17 +14,19 @@
 # monocultures/cellbender_scripts/run_all_cellbender_cpu.sh -- CPU-only
 # CellBender (see that script and CLAUDE.md's CellBender GPU saga for why
 # CPU is used instead of --cuda), driven by this arm's own
-# cell_quantities.csv. Deliberately reuses the monoculture arm's already-
-# built CellBender conda environment (monocultures/envs/cellbender)
-# rather than building a second, redundant copy under cocultures/envs/ --
-# it's the identical cellbender/torch/CUDA versions either way.
+# cell_quantities.csv. Activates the single CellBender conda env shared by
+# both arms (envs/cellbender lives at the repo root, one level above both
+# monocultures/ and cocultures/ -- see CLAUDE.md's HPC environment
+# section) rather than building a second, redundant copy under
+# cocultures/envs/ -- it's the identical cellbender/torch/CUDA version
+# either way.
 #
 # Usage is identical to the monoculture version:
 #   Rscript cellbender_scripts/make_cellbender_params.R   # writes cell_quantities.csv
 #   bash cellbender_scripts/run_all_cellbender_cpu.sh      # self-submits the array job
 
 REPO="/projects/b1169/boles/img_scfrp/cocultures"
-ENV_DIR="/projects/b1169/boles/img_scfrp/monocultures/envs/cellbender"
+ENV_DIR="/projects/b1169/boles/img_scfrp/envs/cellbender"
 CSV="$REPO/cellbender_scripts/cell_quantities.csv"
 
 if [ -z "$SLURM_ARRAY_TASK_ID" ]; then
