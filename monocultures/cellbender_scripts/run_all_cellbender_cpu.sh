@@ -43,7 +43,7 @@ fi
 module purge
 module load python-miniconda3/4.10.3
 module load mamba
-source activate "$REPO/envs/cellbender"
+source activate "/projects/b1169/boles/img_scfrp/envs/cellbender"
 
 echo "Running on host: $(hostname), ${SLURM_CPUS_PER_TASK} CPUs allocated"
 

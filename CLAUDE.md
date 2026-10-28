@@ -194,14 +194,25 @@ described here is otherwise unchanged.)
 
 - Repo/storage lives at `/projects/b1169/boles/img_scfrp`. As of the Oct 28
   2026 restructure, `data/`, `results/`, `logs/`, `fastq/`,
-  `downsampled_fastq/`, `cellranger/`, `cellbender/`, `envs/` live one level
+  `downsampled_fastq/`, `cellranger/`, `cellbender/` live one level
   deeper, under the relevant arm — `monocultures/data/`,
   `monocultures/logs/`, etc. for the existing pipeline, and (once built)
   `cocultures/data/`, `cocultures/logs/`, etc. for the new arm — matching
   the `.gitignore`'s `*/data/*`-style patterns (anchored one level deep,
   deliberately, for exactly this split). Every script's `setwd()`/`REPO=`
   now points at `.../img_scfrp/monocultures` — see the top-level structure
-  section above for the fix.
+  section above for the fix. **`envs/` is the one exception** — it stayed
+  at the repo root (`/projects/b1169/boles/img_scfrp/envs/cellbender`, one
+  level *above* both `monocultures/` and `cocultures/`), shared by both
+  arms rather than duplicated per arm, since it's the same CellBender
+  install either way. The `.gitignore`'s own `envs/*` pattern (no `*/`
+  prefix, unlike every other line in that block) already reflected this —
+  an early pass at fixing monoculture's stale paths incorrectly nested
+  `envs/` under `monocultures/` anyway (missed that one inconsistency in
+  the `.gitignore`); corrected back to the shared root-level path in every
+  script that referenced it (`monocultures/cellbender_scripts/
+  run_all_cellbender*.sh`, `make_cellbender_env.sh`, `README.md`, and
+  `cocultures/cellbender_scripts/run_all_cellbender_cpu.sh`).
 - Cell Ranger reference/probe-set files (shared across both arms, unaffected
   by the restructure): `/projects/p31535/boles/cellranger_references/`.
   Cell Ranger binary: `/projects/p31535/boles/cellranger-10.0.0/cellranger`.
@@ -216,9 +227,10 @@ described here is otherwise unchanged.)
 - R modules: `module load R/4.4.0`, `gcc/11.2.0`,
   `hdf5/1.14.1-2-gcc-12.3.0`.
 - Python/CellBender env: `module load python-miniconda3/4.10.3` +
-  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/monocultures/envs/cellbender`
-  (`cellbender_scripts/run_all_cellbender_cpu.sh`'s `REPO` variable drives
-  this, now fixed).
+  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/envs/cellbender`
+  — note this path is **not** under `monocultures/` or `cocultures/` (see
+  the bullet above); both arms' `run_all_cellbender_cpu.sh` activate it by
+  this same absolute path, independent of their own `REPO` variable.
 
 ## Pipeline stages, in order (monoculture arm — `monocultures/`)
 
@@ -678,84 +690,141 @@ top of this file.)
 
 New arm added alongside `monocultures/` in the same restructure. iPSC-
 derived microglia **co-cultured** with iPSC-derived cortical neurons
-(as opposed to the monoculture arm's microglia-alone design). **No pipeline
-built yet** — only `cocultures/configs/*.csv` exist so far (4 files:
-`JSB127_config.csv`, `JSB134-1_config.csv`, `JSB134-2_config.csv`,
-`JSB134-3_config.csv`), each a `cellranger multi` config
-(`[gene-expression]`/`[libraries]`/`[samples]` sections, same reference/
-probe-set paths as the monoculture arm). These describe **4 real GEM wells**
-— `JSB127`, `JSB134-1`, `JSB134-2`, `JSB134-3` — each probe-barcode-
-multiplexing several samples (`JSB127` has 10 samples at `BC001`-`BC010`;
-each `JSB134-*` has 6-7 samples at various `BC0NN` barcodes). `fastq_id`s
-are `127-1`/`127-2` for `JSB127` and `134-1`/`134-2`/`134-3` for the
-matching `JSB134-*` pool, all reading from one shared FASTQ directory
+(as opposed to the monoculture arm's microglia-alone design). `cellranger
+multi` has already been run on all 4 pools (confirmed via the user's own
+`tree -L 4` of the HPC `cellranger/` output dir) and CellBender's
+manifest/run scripts now exist (`cocultures/cellbender_scripts/`, see
+below) — no R pipeline built yet beyond that.
+
+`cocultures/configs/*.csv` (4 files: `JSB127_config.csv`,
+`JSB134-1_config.csv`, `JSB134-2_config.csv`, `JSB134-3_config.csv`), each
+a `cellranger multi` config (`[gene-expression]`/`[libraries]`/`[samples]`
+sections, same reference/probe-set paths as the monoculture arm), describe
+**4 real GEM wells** — `JSB127`, `JSB134-1`, `JSB134-2`, `JSB134-3`. Cell
+Ranger's actual output directories (`cellranger/<dir>/outs/`) use these
+exact same names — **no `pool_dirs` renaming needed, unlike monoculture's
+4-of-5-pools `_downsampled` suffix** (see CellBender section below).
+`fastq_id`s are `127-1`/`127-2` for `JSB127` and `134-1`/`134-2`/`134-3` for
+the matching `JSB134-*` pool, all reading from one shared FASTQ directory
 (`/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq`) rather than one
 directory per pool (unlike the monoculture arm's per-pool FASTQ dirs — not
-yet confirmed whether this is a meaningful difference or just where the
-files happen to currently sit). Note `JSB134-1_config.csv`'s minor
-formatting quirk (trailing commas/empty columns throughout, vs. `JSB127`'s
-cleaner format) — likely harmless for `cellranger multi`'s parser, but
-worth a second look if that config is ever the one that fails.
+confirmed whether this is meaningful or just where the files happen to
+currently sit, but not relevant to anything downstream). Note
+`JSB134-1_config.csv`'s minor formatting quirk (trailing commas/empty
+columns throughout, vs. `JSB127`'s cleaner format) — likely harmless for
+`cellranger multi`'s parser (it ran successfully), but worth a second look
+if that config is ever the one that fails on a rerun.
 
-**Sample-naming convention, partially understood, needs the user's
-confirmation before building any downstream metadata schema**:
+**Sample-naming convention — confirmed by the user, no longer a guess**:
 `sample_id`s follow `<token1>_<token2>[_<N>]`, e.g. `KOLF_CN`, `KOLF_GALC`,
-`GALC_GALC_2`, `GBA_GBA_3`. Working hypotheses, **not yet confirmed**:
-- `token1`/`token2` are each a genotype label (`KOLF`/`GALC`/`GBA`/`GRN`/
-  `LRRK2` — the same 5 genotypes as the monoculture arm) or the literal
-  string `CN`. Most likely reading: `token1` = microglia genotype,
-  `token2` = cortical-neuron genotype, with `CN` standing in for "cortical
-  neurons alone, no microglia" (a mono-cell-type control well, analogous to
-  having no `token2` at all) — but this is a guess, not confirmed.
-- The trailing numeric suffix (`_2`, `_3`) recurs across different pools
-  with the *same* base name but a *different* probe barcode (e.g.
-  `KOLF_GALC` in `JSB127` at `BC003` vs. `KOLF_GALC_2` in `JSB134-1` at
-  `BC013`) — structurally identical to the monoculture arm's `_<batch-
-  number>` suffix, so likely a batch/replicate axis. Not confirmed whether
-  it's literally the same batch concept (same dates/meaning) as
-  monoculture's `batch`, or an independent coculture-specific batch
-  numbering.
-- Unclear whether a treatment axis (myelin/asyn, as in the monoculture
-  arm) applies to coculture at all, or whether genotype-pairing is the only
-  experimental variable here.
+`GALC_GALC_2`, `GBA_GBA_3`.
+- `token1` = **cortical-neuron genotype**, `token2` = **microglia
+  genotype** (reversed from this file's original guess, which had it
+  backwards). The one deviation: `KOLF_CN` has no real `token2` —
+  `CN` here literally stands for "**C**ortical **N**eurons [alone]", i.e.
+  a neuron-only well with no microglia added (not a second genotype
+  label). Every other `sample_id` follows the real two-genotype pattern,
+  including the "matched" homozygous pairs where both tokens are the same
+  non-KOLF genotype (`GALC_GALC`, `GBA_GBA`, `GRN_GRN`, `LRRK2_LRRK2` —
+  genotype-matched neurons + microglia) and the KOLF-neuron/non-KOLF-
+  microglia pairs (`KOLF_GALC`, `KOLF_GBA`, `KOLF_GRN`, `KOLF_LRRK2`, plus
+  `KOLF_KOLF` as the all-KOLF control). **10 distinct genotype-pair
+  "conditions" total**: `KOLF_CN`, `KOLF_KOLF`, `KOLF_GALC`, `KOLF_GBA`,
+  `KOLF_GRN`, `KOLF_LRRK2`, `GALC_GALC`, `GBA_GBA`, `GRN_GRN`,
+  `LRRK2_LRRK2`.
+- The trailing numeric suffix (`_2`, `_3`, absent = batch 1) is the
+  **batch/replicate number** — confirmed: each of the 10 conditions has 3
+  independent-batch replicates. **This batch numbering is wholly
+  independent of the monoculture arm's `batch`** (different experiments,
+  different dates/meaning — don't conflate `cocultures`' batch 1/2/3 with
+  `monocultures`' `"Batch 1".."Batch 4"`).
+- **No treatment axis** — genotype pairing (the two tokens) is the only
+  experimental variable for this arm. Unlike monoculture, there is no
+  myelin/asyn-style `treatment` column to carry.
 
-**These ambiguities should be put to the user directly (not guessed)
-before specifying a `samples.csv`-equivalent schema for coculture** — same
-standing "ask before guessing on consequential/scientific decisions"
-convention as the rest of this project (see Conventions below).
+**Important structural difference from monoculture, discovered from the
+Cell Ranger output tree — note for the eventual `samples.csv`-equivalent**:
+in monoculture, each pool/GEM well maps to exactly one batch (the only
+exception being `iMG1`/`iMG1_redo`, where the *same* batch was captured
+*twice* in two separate wells). In coculture, it's the opposite kind of
+exception: **one well, `JSB134-3`, holds samples from *two different*
+batches at once** — its `per_sample_outs/` contains `GBA_GBA_2`/
+`GRN_GRN_2`/`LRRK2_LRRK2_2` (batch 2) *and* `GBA_GBA_3`/`GRN_GRN_3`/
+`LRRK2_LRRK2_3` (batch 3) side by side, apparently because those 3
+homozygous-pair conditions' batch-2 and batch-3 replicates got pooled
+together into one well rather than following `JSB134-1`'s (batch 2) /
+`JSB134-2`'s (batch 3) per-batch pooling that the other 7 conditions use.
+Concretely: batch 1 = all 10 conditions in `JSB127`; batch 2 = 7 conditions
+in `JSB134-1` (`KOLF_CN_2`, `KOLF_KOLF_2`, `KOLF_GALC_2`, `KOLF_GBA_2`,
+`KOLF_GRN_2`, `KOLF_LRRK2_2`, `GALC_GALC_2`) + 3 conditions in `JSB134-3`
+(`GBA_GBA_2`, `GRN_GRN_2`, `LRRK2_LRRK2_2`); batch 3 = the same 7-condition
+split in `JSB134-2` (`..._3`) + the same 3-condition split in `JSB134-3`
+(`..._3`) — 30 total (pool, sample) captures (10 conditions x 3 batches),
+no "redo"-style duplicate captures anywhere in this arm. **Practical
+consequence**: unlike monoculture, `pool_dir` alone cannot be used to
+infer `batch` for coculture (`JSB134-3` cells span 2 batches) — batch must
+be parsed directly from the `sample_id`'s own trailing numeric suffix
+whenever the eventual coculture `01_obj_creation.R`-equivalent is built.
 
-**What's needed to run CellBender on the coculture Cell Ranger outputs**
-(mirroring the monoculture arm's `make_cellbender_params.R` →
-`run_all_cellbender_cpu.sh` pipeline, entry 4 above) — this is mechanical,
-distinct from the metadata-schema ambiguity above:
-1. **Confirmation that Cell Ranger has already been run** on these 4
-   coculture pools, and **the actual Cell Ranger output directory names**
-   for `JSB127`/`JSB134-1`/`JSB134-2`/`JSB134-3` — i.e. the coculture
-   equivalent of monoculture's `pool_dirs` mapping in
-   `make_cellbender_params.R` (which maps a short pool name to its
-   `cellranger/<dir>/outs/per_sample_outs/` directory name, and which for
-   monoculture differs from the pool name itself for 4 of 5 pools because
-   of the `_downsampled` suffix). Needed regardless of what the
-   `pool_dirs` values turn out to be — CellBender's own manifest-building
-   step (`make_cellbender_params.R`-equivalent) reads each sample's
-   `metrics_summary.csv` directly out of that directory, so it has to
-   already exist on disk before anything else here can proceed.
-2. **Whether any downsampling step applies to coculture** — monoculture
-   has one pool (`iMG2`) serving as the un-downsampled depth target and
-   the other four downsampled to match it; not yet known whether an
-   analogous depth-normalization step is needed/wanted for the 4 coculture
-   pools, or whether their original (non-downsampled) Cell Ranger outputs
-   should be used directly.
-Once those are confirmed, the actual script work is a close copy of
-`make_cellbender_params.R`/`run_all_cellbender_cpu.sh` with the `pool_dirs`
-mapping and `REPO` path swapped for coculture's — no new CellBender logic
-is needed beyond that. The downstream `samples.csv`-equivalent metadata
-(genotype/treatment/batch-style columns, whatever the coculture schema
-turns out to be per the naming-convention questions above) is **not**
-required to run CellBender itself — `cell_quantities.csv`-equivalent
-generation only needs Cell Ranger's own `metrics_summary.csv` output, not
-the sample manifest — but will be needed for the first R script
-(`01_obj_creation.R`-equivalent) once CellBender finishes.
+**CellBender — built, ready to run** (`cocultures/cellbender_scripts/`,
+mirroring the monoculture arm's `make_cellbender_params.R` →
+`run_all_cellbender_cpu.sh` pipeline, entry 4 above):
+- `make_cellbender_params.R`: identical logic to the monoculture version
+  (`Metric.Name == "Cells" & Category == "Cells"` row, `droplets =
+  floor(cells * 1.75)`), with `pool_dirs` as a plain identity mapping
+  (`JSB127 = "JSB127"`, etc. — no `_downsampled` suffix to track, since no
+  downsampling step applies to this arm for now, per the user) and
+  `setwd()` pointed at `/projects/b1169/boles/img_scfrp/cocultures`.
+  Writes `cocultures/cellbender_scripts/cell_quantities.csv` in the same
+  `pool_dir,sample,cells,droplets` format as monoculture's.
+- `run_all_cellbender_cpu.sh`: same self-resubmitting CPU-only pattern as
+  monoculture's (`b1042`/`genomics`, 16 cpus, 64G, 48h) — activates the
+  **shared, repo-root-level CellBender conda env**
+  (`/projects/b1169/boles/img_scfrp/envs/cellbender`, one level above both
+  arms — see the HPC environment section above) by absolute path, rather
+  than building a second, redundant copy under `cocultures/envs/`, since
+  it's the identical CellBender/torch/CUDA version either way. Its own
+  `REPO` (`.../cocultures`) only governs this arm's own `cellranger/`/
+  `cellbender/`/`logs/` paths, not the environment.
+- Usage, same as monoculture: `Rscript
+  cellbender_scripts/make_cellbender_params.R` then `bash
+  cellbender_scripts/run_all_cellbender_cpu.sh`, both run from
+  `cocultures/`. **Not yet actually run on the HPC** — scripts are written
+  and believed correct (same logic as monoculture's working version,
+  verified against the real Cell Ranger output tree the user provided),
+  but unverified against an actual run.
+
+**Sequencing-depth diagnostic — built, not yet run** (`cocultures/seqtk/
+get_seqtk_proportions.R`, mirroring monoculture's
+`seqtk/get_seqtk_proportions.R`): the user explicitly does **not** want a
+downsampling step for this arm yet, but asked to see *how different*
+sequencing depth actually is across the 4 pools before that decision gets
+revisited. Same core computation as monoculture's script (per-pool reads,
+mean reads/cell, cells from `cellranger/<pool>/outs/qc_library_metrics.csv`;
+`target` = the lowest-`rpc` pool; `target_fraction = target/rpc` for the
+rest) — trimmed to `library(tidyverse)` alone rather than monoculture's
+~40-package import (Seurat, DESeq2, MAST, ComplexHeatmap, ... — unrelated
+to this computation, just slows startup; not fixed in the monoculture
+script itself since this is a new file, but worth porting that fix back
+if `monocultures/seqtk/get_seqtk_proportions.R` is ever revisited). Writes
+three things, all into `cocultures/seqtk/`: `depth_by_pool.csv` (the full
+reads/rpc/cells/target/target_fraction table, for inspection),
+`downsample_targets.txt` (same `pool,target_fraction` format monoculture's
+`seqtk.sh` consumes, written in case the no-downsampling decision changes
+later — pools already at the target are dropped, same as monoculture), and
+`reads_per_cell_by_pool.png` (a bar chart of mean reads/cell per pool with
+the target depth marked — the actual "how bad is it" view, which
+monoculture's script never needed since it only ever fed the raw
+fractions straight to `seqtk`). **Important caveat, noted in the script's
+own comments**: this is necessarily **per-pool**, not per-batch, depth —
+`qc_library_metrics.csv` is a whole-GEM-well metric, and `JSB134-3` holds
+two different batches (`_2`/`_3`) sequenced together in one well, so their
+depths can't be separated from this file. The other 3 pools each map to
+exactly one batch, so per-pool depth doubles as per-batch depth for those.
+**Not yet run** — no execution environment available outside the HPC, so
+the actual numbers/plot don't exist yet; run
+`Rscript seqtk/get_seqtk_proportions.R` from `cocultures/` on Quest to
+generate them.
 
 ## Metadata schema, stage by stage
 
@@ -847,10 +916,12 @@ anything about sequencing batch structure that doesn't care about the
   invites this ("ask if you're unsure") and has used
   `AskUserQuestion`-style clarifications productively — don't skip it to
   move faster when a wrong guess would mean redoing real compute (CellBender
-  GPU-hours, DoubletFinder runs, etc.). This applies to the new coculture
-  arm's sample-naming/metadata-schema ambiguities too (see that section
-  above) — don't guess at what `CN`/the numeric suffix/a possible treatment
-  axis mean; ask.
+  GPU-hours, DoubletFinder runs, etc.). This is exactly what happened with
+  the coculture arm's sample-naming convention (see that section above) —
+  asked rather than guessed at what `CN`/the numeric suffix/a possible
+  treatment axis meant, and the user's answers corrected a wrong guess
+  (token order was originally assumed backwards) before anything
+  downstream was built on it.
 - **`als_cns_scrnaseq`** (github.com/jakesboles/als_cns_scrnaseq,
   cloned read-only for reference at
   `/home/user/jakesboles/als_cns_scrnaseq`) is the user's other project,
@@ -993,12 +1064,18 @@ anything about sequencing batch structure that doesn't care about the
   35, 36)`, `non_microglia_clusters <- c(26, 33)`) are tied to one exact
   upstream clustering — re-eyeball and update if `05_integration_harmony.R`'s
   output changes.
-- The **coculture arm's** sample-naming convention (`<token1>_<token2>
-  [_<N>]`) and the eventual `samples.csv`-equivalent schema are still
-  genuinely ambiguous — needs the user's clarification on what `token1`/
-  `token2`/`CN`/the numeric suffix represent, and whether a treatment axis
-  applies, before that metadata file can be built. See the "Coculture arm"
-  section above.
+- The **coculture arm's** `samples.csv`-equivalent metadata file still
+  needs to be built (naming convention is now confirmed — see the
+  "Coculture arm" section above — just not yet turned into an actual CSV/
+  `01_obj_creation.R`-equivalent). Remember `JSB134-3`'s mixed-batch
+  structure when building it: `batch` must come from the `sample_id`
+  suffix, not `pool_dir`.
+- `cocultures/cellbender_scripts/make_cellbender_params.R` and
+  `run_all_cellbender_cpu.sh` are written but **not yet run** on the HPC —
+  verify the first real run (in particular, that `metrics_summary.csv`
+  exists per-sample under this Cell Ranger version's output the same way
+  it does for monoculture, and that `sample_raw_feature_bc_matrix.h5` is
+  named identically).
 - ~~Root-level `jobs/` duplicates several `.sh` job scripts~~ — resolved by
   the `r_scripts/`/`jobs/`/`data/`/`results/` reorg (see the directory-
   structure section near the top and the note at the end of the
