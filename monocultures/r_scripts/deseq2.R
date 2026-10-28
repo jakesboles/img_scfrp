@@ -44,8 +44,7 @@ obj <- CreateSeuratObject(counts = counts_mat, meta.data = meta, assay = "RNA")
 bulk <- AggregateExpression(obj,
                             assays = "RNA",
                             group.by = "sample",
-                            return.seurat = F,
-                            layer = "counts")
+                            return.seurat = F)
 
 exp <- bulk$RNA
 

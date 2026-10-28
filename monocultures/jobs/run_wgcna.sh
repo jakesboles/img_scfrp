@@ -4,7 +4,7 @@
 #SBATCH --job-name wgcna_consensus
 #SBATCH --nodes 1
 #SBATCH --ntasks-per-node 16
-#SBATCH --mem 300GB
+#SBATCH --mem 450GB
 #SBATCH --time 48:00:00
 #SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%j.log
 #SBATCH --verbose

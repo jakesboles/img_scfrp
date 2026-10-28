@@ -1,0 +1,22 @@
+[gene-expression]
+reference,/projects/p31535/boles/cellranger_references/refdata-gex-GRCh38-2024-A
+probe-set,/projects/p31535/boles/cellranger_references/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv
+create-bam,false
+
+[libraries]
+fastq_id,fastqs,feature_types
+127-1,/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq,Gene Expression
+127-2,/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq,Gene Expression
+
+[samples]
+sample_id,probe_barcode_ids
+KOLF_CN,BC001
+KOLF_KOLF,BC002
+KOLF_GALC,BC003
+KOLF_GBA,BC004
+KOLF_GRN,BC005
+KOLF_LRRK2,BC006
+GALC_GALC,BC007
+GBA_GBA,BC008
+GRN_GRN,BC009
+LRRK2_LRRK2,BC010
