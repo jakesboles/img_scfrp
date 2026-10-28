@@ -5,8 +5,8 @@ create-bam,false
 
 [libraries]
 fastq_id,fastqs,feature_types
-127-1,/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq,Gene Expression
-127-2,/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq,Gene Expression
+127-1,/projects/b1169/boles/img_scfrp/cocultures/fastq,Gene Expression
+127-2,/projects/b1169/boles/img_scfrp/cocultures/fastq,Gene Expression
 
 [samples]
 sample_id,probe_barcode_ids
