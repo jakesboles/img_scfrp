@@ -766,6 +766,47 @@ infer `batch` for coculture (`JSB134-3` cells span 2 batches) — batch must
 be parsed directly from the `sample_id`'s own trailing numeric suffix
 whenever the eventual coculture `01_obj_creation.R`-equivalent is built.
 
+**Cell Ranger rerun needed for `JSB134-1`/`JSB134-2`** — discovered after
+the fact: an earlier copy-paste error while preparing this arm's config
+files pointed `JSB134-1_config.csv` and `JSB134-2_config.csv`'s
+`[libraries]` section at the same underlying FASTQ selection, so those
+two pools' existing `cellranger/JSB134-1/`/`cellranger/JSB134-2/` output
+on disk reflects identical (wrong) input despite each config's distinct
+`[samples]` assignments. The configs on disk have since been corrected
+(confirmed: `JSB134-1` now reads `fastq_id = 134-1`, `JSB134-2` reads
+`fastq_id = 134-2`), but the stale Cell Ranger output itself was never
+regenerated from them. `JSB127` and `JSB134-3` are not implicated (their
+configs were never duplicated).
+
+Built `cocultures/cellranger_scripts/` to fix this — mirrors
+`monocultures/cellranger_scripts/`'s cluster-mode setup exactly
+(`cellranger multi --jobmode=slurm.template`, `b1042`/`genomics`,
+`test_cluster_mode.sh` to validate first): one script per pool
+(`JSB127_cellranger.sh`, `JSB134-1_cellranger.sh`,
+`JSB134-2_cellranger.sh`, `JSB134-3_cellranger.sh`, all four built for
+completeness even though only two are confirmed to need a rerun),
+`slurm.template` (identical copy of monoculture's), and `run_all.sh` —
+which deliberately submits **only** `JSB134-1`/`JSB134-2`, not all 4, to
+match the actual scope of the bug. See `cellranger_scripts/README.md` for
+the full writeup, including the **required manual step before
+rerunning**: the existing `cellranger/JSB134-1/`/`cellranger/JSB134-2/`
+directories must be moved or deleted first, since Cell Ranger refuses to
+run `multi` into a pipestance directory that already exists — not done
+automatically by any script here, since deleting existing HPC output is
+exactly the kind of action this session shouldn't take on its own.
+**Not yet run** — this session has no HPC access to actually submit
+anything.
+
+**Knock-on effect on CellBender, flagged but not acted on**: CellBender
+(see below) was reported as "running successfully" against the *current*
+(partly stale) Cell Ranger output, which means whatever it produces or
+has already produced for `JSB134-1`/`JSB134-2` is built on the bad data
+and will need to be regenerated (`make_cellbender_params.R` rerun, then
+`run_all_cellbender_cpu.sh` rerun for just those samples) once the Cell
+Ranger rerun above finishes. Nothing about this was changed or stopped
+from this session — no HPC access to do so — just noted here so it isn't
+missed.
+
 **CellBender — built, ready to run** (`cocultures/cellbender_scripts/`,
 mirroring the monoculture arm's `make_cellbender_params.R` →
 `run_all_cellbender_cpu.sh` pipeline, entry 4 above):
@@ -1374,6 +1415,18 @@ concept at all.
   start~~ — done: `cocultures/r_scripts/03_doubletfinder.R` written (the
   surviving reference object never had it, the same omission monoculture
   itself initially made before its own `03_doubletfinder.R` was added).
+- **Blocking, newly discovered**: `cellranger/JSB134-1/` and
+  `cellranger/JSB134-2/`'s existing output is stale (a copy-paste error in
+  this arm's earlier config files made those two pools process identical
+  FASTQ input; the configs have since been fixed but the Cell Ranger
+  output was never regenerated). `cocultures/cellranger_scripts/` was
+  built to rerun just those two pools, mirroring monoculture's
+  cluster-mode setup — see the dedicated section above and
+  `cellranger_scripts/README.md`. **Not yet run** (no HPC access from
+  this session), and the stale `cellranger/JSB134-1/`/`cellranger/
+  JSB134-2/` directories must be manually cleared first. Whatever
+  CellBender has produced for those two pools against the stale output
+  will also need to be regenerated afterward.
 - The full coculture rebuild (`cocultures/r_scripts/01_obj_creation.R`
   through `07_annotation.R`, plus their `jobs/*.sh` counterparts) is
   **written but not yet run on the HPC** — CellBender was still running
