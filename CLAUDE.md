@@ -789,12 +789,10 @@ mirroring the monoculture arm's `make_cellbender_params.R` →
 - Usage, same as monoculture: `Rscript
   cellbender_scripts/make_cellbender_params.R` then `bash
   cellbender_scripts/run_all_cellbender_cpu.sh`, both run from
-  `cocultures/`. **Not yet actually run on the HPC** — scripts are written
-  and believed correct (same logic as monoculture's working version,
-  verified against the real Cell Ranger output tree the user provided),
-  but unverified against an actual run.
+  `cocultures/`. **Currently running on the HPC** as of the user's latest
+  update — not yet confirmed complete/successful.
 
-**Sequencing-depth diagnostic — built, not yet run** (`cocultures/seqtk/
+**Sequencing-depth diagnostic — run, downsampling decided against** (`cocultures/seqtk/
 get_seqtk_proportions.R`, mirroring monoculture's
 `seqtk/get_seqtk_proportions.R`): the user explicitly does **not** want a
 downsampling step for this arm yet, but asked to see *how different*
@@ -821,10 +819,55 @@ own comments**: this is necessarily **per-pool**, not per-batch, depth —
 two different batches (`_2`/`_3`) sequenced together in one well, so their
 depths can't be separated from this file. The other 3 pools each map to
 exactly one batch, so per-pool depth doubles as per-batch depth for those.
-**Not yet run** — no execution environment available outside the HPC, so
-the actual numbers/plot don't exist yet; run
-`Rscript seqtk/get_seqtk_proportions.R` from `cocultures/` on Quest to
-generate them.
+**Run — decision made**: the user ran this and found the depth disparity
+across coculture pools much less severe than monoculture's (which is why
+monoculture needed `seqtk` at all), and has decided to **forgo
+downsampling for this arm** on that basis — not a placeholder "for now"
+deferral anymore, but a real decision backed by the actual numbers. CPU
+CellBender (`cocultures/cellbender_scripts/run_all_cellbender_cpu.sh`) is
+therefore running directly against the original (non-downsampled) Cell
+Ranger outputs, same as monoculture's `iMG2`.
+
+## Coculture arm, next stage: recovering the lost preprocessing pipeline
+
+The user's own coculture preprocessing scripts (the `01_obj_creation.R`-
+through-`0N`-equivalent stages, including a microglia-vs-neuron broad
+annotation step that monoculture has no counterpart for) were lost, but a
+**finished, fully cleaned/processed Seurat object from that lost pipeline
+still exists** on the HPC. Plan: reconstruct the pipeline's actual
+parameters from that object rather than from memory, since Seurat logs
+every function call that touches an object — method + every argument —
+in `obj@commands`, which amounts to a parameter-level transcript of what
+was actually run (`NormalizeData`, `FindVariableFeatures`, `RunPCA`,
+`IntegrateLayers`, `FindClusters`, etc.). Combined with the object's
+`meta.data` schema/value tables and `VariableFeatures`, that's enough to
+rebuild the pipeline without transferring the (likely multi-GB) object
+itself anywhere — this session has no access to the HPC filesystem and no
+practical way to receive a file that size.
+
+`cocultures/r_scripts/inspect_reference_object.R` — a one-off diagnostic,
+deliberately **not** a numbered pipeline stage — does this extraction:
+basic structure (assays/layers, reductions, graphs, `misc` slot names),
+full `meta.data` schema plus a value table/summary per column (this is
+where the microglia-vs-neuron annotation column's actual name and
+levels will show up), `VariableFeatures`, and the full `obj@commands`
+dump. Writes `object_diagnostic.txt`. **Not yet run** — waiting on the
+user to point `OBJ_PATH` at the real object and run it on Quest, then
+share the output back.
+
+**Open question, not yet answered**: how the microglia-vs-neuron
+annotation was actually done — e.g. clustering + manual marker-based
+labeling (the same by-eye pattern `06_qc2.R` uses for monoculture's
+non-microglia-cluster removal, just repurposed to *label* rather than
+*remove*), a marker module-score threshold, or an automated reference-
+based classifier (SingleR/Azimuth-style label transfer). `obj@commands`
+will only capture this if it went through a loggable Seurat function
+(e.g. `FindClusters`, or a label-transfer function) — a purely manual
+step (e.g. `obj$cell_type <- ifelse(...)` after eyeballing marker plots,
+mirroring `06_qc2.R`'s own manual cluster-removal judgment call) won't
+show up there and will need to be inferred from the `meta.data` column
+itself (is there a score column alongside the label? a cluster id
+column?) or asked about directly once the diagnostic output is in hand.
 
 ## Metadata schema, stage by stage
 
@@ -1071,11 +1114,19 @@ anything about sequencing batch structure that doesn't care about the
   structure when building it: `batch` must come from the `sample_id`
   suffix, not `pool_dir`.
 - `cocultures/cellbender_scripts/make_cellbender_params.R` and
-  `run_all_cellbender_cpu.sh` are written but **not yet run** on the HPC —
-  verify the first real run (in particular, that `metrics_summary.csv`
-  exists per-sample under this Cell Ranger version's output the same way
-  it does for monoculture, and that `sample_raw_feature_bc_matrix.h5` is
-  named identically).
+  `run_all_cellbender_cpu.sh` are now **running** on the HPC (not yet
+  confirmed complete/successful) — verify once finished (in particular,
+  that `metrics_summary.csv` existed per-sample under this Cell Ranger
+  version's output the same way it does for monoculture, and that
+  `sample_raw_feature_bc_matrix.h5` was named identically).
+- The coculture arm's original preprocessing pipeline (past CellBender)
+  was lost; `cocultures/r_scripts/inspect_reference_object.R` is written
+  to reverse-engineer it from a surviving finished object's
+  `obj@commands`/`meta.data`/`VariableFeatures`, but **not yet run** —
+  waiting on the user to point it at the real object on Quest and share
+  the resulting `object_diagnostic.txt`. See the dedicated section above
+  for what's still unknown (in particular, how the microglia-vs-neuron
+  annotation was actually produced).
 - ~~Root-level `jobs/` duplicates several `.sh` job scripts~~ — resolved by
   the `r_scripts/`/`jobs/`/`data/`/`results/` reorg (see the directory-
   structure section near the top and the note at the end of the
