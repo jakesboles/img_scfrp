@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task 16
 #SBATCH --mem 64G
 #SBATCH --time 48:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a_%N.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/monocultures/logs/%x_%A_%a_%N.log
 #SBATCH --verbose
 #
 # CPU-only variant of run_all_cellbender.sh, for while the genomics-gpu
@@ -25,7 +25,7 @@
 #   Rscript cellbender_scripts/make_cellbender_params.R   # writes cell_quantities.csv
 #   bash cellbender_scripts/run_all_cellbender_cpu.sh      # self-submits the array job
 
-REPO="/projects/b1169/boles/img_scfrp"
+REPO="/projects/b1169/boles/img_scfrp/monocultures"
 CSV="$REPO/cellbender_scripts/cell_quantities.csv"
 
 if [ -z "$SLURM_ARRAY_TASK_ID" ]; then

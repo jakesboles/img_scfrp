@@ -16,7 +16,7 @@ message2 <- function(text){
   message(paste0(v1, text, v1))
 }
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 data_out_dir <- "data/01_obj_assembly/"
 dir.create(data_out_dir, showWarnings = F, recursive = T)

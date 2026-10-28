@@ -4,7 +4,7 @@ library(ggplot2)
 library(org.Hs.eg.db)
 library(msigdbr)
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 # wgcna.R writes its plots/CSVs to results/wgcna/.
 results_dir <- "results/wgcna/"

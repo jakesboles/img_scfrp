@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node 4
 #SBATCH --mem 16G
 #SBATCH --time 02:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/monocultures/logs/%x_%A.log
 #SBATCH --verbose
 
 # Validates slurm.template and cluster-mode job submission before running any
@@ -16,7 +16,7 @@
 # cheap jobs instead of a multi-day run. See cellranger_scripts/README.md for
 # how to run this and what to check.
 
-cd /projects/b1169/boles/img_scfrp/cellranger
+cd /projects/b1169/boles/img_scfrp/monocultures/cellranger
 
 /projects/p31535/boles/cellranger-10.0.0/cellranger testrun \
 --id "cluster_mode_test" \

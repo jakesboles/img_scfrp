@@ -6,10 +6,10 @@
 #SBATCH --ntasks-per-node 16
 #SBATCH --mem 64G
 #SBATCH --time 4:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%j.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/monocultures/logs/%x_%j.log
 #SBATCH --verbose
 
 module load R/4.4.0
 module load hdf5/1.14.1-2-gcc-12.3.0
 
-Rscript /projects/b1169/boles/img_scfrp/r_scripts/01_obj_creation.R
+Rscript /projects/b1169/boles/img_scfrp/monocultures/r_scripts/01_obj_creation.R

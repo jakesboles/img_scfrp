@@ -7,7 +7,7 @@
 # (Seurat, DESeq2, MAST, ComplexHeatmap, ...) unrelated to reading a few
 # CSVs and computing floor(cells * 1.75), which only slowed startup.
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 # Which cellranger/<dir>/outs/per_sample_outs/ to read per pool. iMG2 is
 # the sequencing-depth target (see seqtk/downsample_targets.txt) and was

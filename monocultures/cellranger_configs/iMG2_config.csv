@@ -5,8 +5,8 @@ create-bam,false
 
 [libraries]
 fastq_id,fastqs,feature_types
-iMG2,/projects/b1169/boles/img_scfrp/fastq/Gate38_11.22.2024,Gene Expression
-iMG2,/projects/b1169/boles/img_scfrp/fastq/FixedRNA_Jake,Gene Expression
+iMG2,/projects/b1169/boles/img_scfrp/monocultures/fastq/Gate38_11.22.2024,Gene Expression
+iMG2,/projects/b1169/boles/img_scfrp/monocultures/fastq/FixedRNA_Jake,Gene Expression
 
 [samples]
 sample_id,probe_barcode_ids

@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task 2
 #SBATCH --mem 16G
 #SBATCH --time 24:00:00
-#SBATCH --output /projects/b1169/boles/img_scfrp/logs/%x_%A_%a.log
+#SBATCH --output /projects/b1169/boles/img_scfrp/monocultures/logs/%x_%A_%a.log
 #SBATCH --verbose
 #SBATCH --array=1-68
 #
@@ -20,7 +20,7 @@
 
 module load seqtk
 
-REPO="/projects/b1169/boles/img_scfrp"
+REPO="/projects/b1169/boles/img_scfrp/monocultures"
 MANIFEST="$REPO/seqtk/downsample_manifest.txt"
 
 LINE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" "$MANIFEST")

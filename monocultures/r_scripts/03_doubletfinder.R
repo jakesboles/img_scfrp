@@ -31,7 +31,7 @@ message2 <- function(text){
   message(paste0(v1, text, v1))
 }
 
-setwd("/projects/b1169/boles/img_scfrp")
+setwd("/projects/b1169/boles/img_scfrp/monocultures")
 
 results_dir <- "results/03_doubletfinder/"
 dir.create(results_dir, showWarnings = F, recursive = T)

@@ -41,7 +41,7 @@ suppressMessages({
   library(SCPA)
 })
 
-setwd("/gpfs/projects/b1169/boles/img_scfrp/")
+setwd("/gpfs/projects/b1169/boles/img_scfrp/monocultures/")
 
 batches <- list.dirs("cellranger",
                      recursive = F,
