@@ -855,19 +855,23 @@ dump. Writes `object_diagnostic.txt`. **Not yet run** — waiting on the
 user to point `OBJ_PATH` at the real object and run it on Quest, then
 share the output back.
 
-**Open question, not yet answered**: how the microglia-vs-neuron
-annotation was actually done — e.g. clustering + manual marker-based
-labeling (the same by-eye pattern `06_qc2.R` uses for monoculture's
-non-microglia-cluster removal, just repurposed to *label* rather than
-*remove*), a marker module-score threshold, or an automated reference-
-based classifier (SingleR/Azimuth-style label transfer). `obj@commands`
-will only capture this if it went through a loggable Seurat function
-(e.g. `FindClusters`, or a label-transfer function) — a purely manual
-step (e.g. `obj$cell_type <- ifelse(...)` after eyeballing marker plots,
-mirroring `06_qc2.R`'s own manual cluster-removal judgment call) won't
-show up there and will need to be inferred from the `meta.data` column
-itself (is there a score column alongside the label? a cluster id
-column?) or asked about directly once the diagnostic output is in hand.
+**How the microglia-vs-neuron annotation was done — confirmed by the
+user**: clustering + manual marker-based labeling, the same by-eye
+pattern `06_qc2.R` already uses for monoculture's non-microglia-cluster
+removal, just repurposed here to *label* clusters as microglia/neuron
+rather than *remove* them. Practical consequence for reading the
+diagnostic output: `obj@commands` will capture the `FindClusters`
+call(s) (algorithm, resolution, graph name) but **not** the labeling step
+itself, since a manual `obj$cell_type <- ...`-style assignment after
+eyeballing marker plots doesn't log to `obj@commands` the way a Seurat
+function call does. Expect to find a cluster-id column and a separate
+cell-type-label column (microglia/neuron, or similar) in `meta.data`, but
+**not yet known which specific marker genes were used for the by-eye
+call** (monoculture's `06_qc2.R` used `AIF1`/`CSF1R` for "is this
+microglia"; this arm's neuron side would need its own markers, e.g.
+something like `RBFOX3`/`MAP2`/`TUBB3`/`SYP`, but this hasn't been
+confirmed) — ask once the diagnostic output is in hand, rather than
+guessing at which genes were actually checked.
 
 ## Metadata schema, stage by stage
 
