@@ -4,6 +4,51 @@ This file is a memory dump of what's been established across a long session
 building this pipeline, so future work doesn't have to re-derive it. Written
 by Claude; update it as the project evolves rather than letting it go stale.
 
+## Top-level project structure: `monocultures/` vs `cocultures/` (as of Oct 28 2026)
+
+The repo was restructured (commit `61c2414`, "New project structure.
+Monoculture and coculture analysis will all happen here") into two
+top-level arms sharing one project/repo:
+
+- **`monocultures/`** — everything described in the rest of this file below
+  (all pipeline stages, scripts, configs) is this arm. It's a pure
+  `git mv` of what used to live at repo root directly into `monocultures/`
+  — same `r_scripts/`, `jobs/`, `cellbender_scripts/`, `cellranger_configs/`,
+  `cellranger_scripts/`, `seqtk/`, `samples.csv` subtree, just one directory
+  deeper. **Every path in the rest of this document that looks repo-root-
+  relative (`r_scripts/01_obj_creation.R`, `data/02_qc/`,
+  `cellbender_scripts/cell_quantities.csv`, etc.) is actually
+  `monocultures/<that path>`** — this file keeps the un-prefixed paths in
+  prose below only where they already existed pre-restructure, but assume
+  the `monocultures/` prefix throughout unless stated otherwise.
+- **`cocultures/`** — new arm, iPSC-derived microglia **co-cultured** with
+  iPSC-derived cortical neurons (as opposed to the microglia-alone
+  monoculture arm). Currently has only `cocultures/configs/*.csv` (Cell
+  Ranger `multi` configs); no pipeline built yet. See the dedicated
+  "Coculture arm" section below for what's known/open so far.
+
+**Known issue from this restructure, not yet fixed (flagged to the user,
+blocking)**: every `.R`/`.sh` file under `monocultures/` still hardcodes
+the *pre-restructure* repo root (`setwd("/projects/b1169/boles/img_scfrp")`
+in all 14 `r_scripts/*.R` files; `REPO="/projects/b1169/boles/img_scfrp"` in
+`cellbender_scripts/*.sh`; absolute `Rscript
+/projects/b1169/boles/img_scfrp/r_scripts/...` lines in every `jobs/*.sh`;
+same pattern in `cellranger_scripts/*.sh` and `seqtk/*.sh`) instead of the
+new `/projects/b1169/boles/img_scfrp/monocultures`. Since every relative
+path inside these scripts resolves off whatever `setwd()`/`REPO` points at,
+**nothing under `monocultures/` can currently run correctly on the HPC** —
+job scripts' `Rscript` target paths point at files that no longer exist
+there, and any R script run directly would silently read/write against the
+old, now-undifferentiated root instead of `monocultures/`. This needs a
+mechanical `/monocultures` path-segment insertion across ~30 files before
+any monoculture job can be (re)run. Not fixed yet — flag it again if picked
+up mid-task and it hasn't been addressed.
+
+**Also noted, low-priority**: a stale, byte-identical duplicate of
+`monocultures/samples.csv` still sits at repo root (`/samples.csv`) from
+before the restructure moved it — harmless (nothing reads it) but worth
+deleting next time this area is touched.
+
 ## What this project is
 
 iPSC-derived microglia (iMG) scRNA-seq, 10x Chromium **Fixed RNA Profiling**
@@ -42,6 +87,10 @@ one biological sample. The convention landed on:
   **`sample` alone is therefore ambiguous between the two captures** for
   anything that needs the distinct identity (e.g. per-capture DoubletFinder
   file naming) — use `pool_dir` + `sample` together, or the raw manifest.
+
+(All of the above, and everything through the rest of this file up to the
+"Coculture arm" section, describes the **monoculture arm specifically** —
+i.e. everything under `monocultures/`.)
 
 ## BPCells is the standard data I/O pattern — always, not just for 01-03
 
@@ -89,27 +138,31 @@ The pattern, consistently applied in `01`/`02`/`04`:
 If a future draft script (yours, mine, or the user's own edit) reads or
 writes a whole object via a single `saveRDS`/`readRDS(...)  # full Seurat
 object`, that's a regression from this convention and should be flagged/
-fixed, not adopted quietly.
+fixed, not adopted quietly. This convention is scoped to the monoculture
+arm's established scripts (`monocultures/r_scripts/`); apply the same
+standard when building out the coculture pipeline unless the user says
+otherwise.
 
-## Directory structure: `r_scripts/`, `jobs/`, `data/`, `results/`
+## Directory structure: `r_scripts/`, `jobs/`, `data/`, `results/` (under `monocultures/`)
 
-As of the user's own repo-wide reorganization, the analysis pipeline
-(everything formerly under `preprocessing/`, `wgcna/`, `deseq2/`) follows
-one flat, consistent layout — **the same split applies to every stage,
-without exception**:
-- **`r_scripts/`** — every `.R` script for the analysis pipeline, flat, no
-  subfolders (`01_obj_creation.R` through `06_qc2.R`, `wgcna*.R`,
-  `deseq2*.R`).
-- **`jobs/`** — every SLURM `.sh` job script for the analysis pipeline,
-  flat, matching names to their `r_scripts/` counterpart
+As of the user's own repo-wide reorganization (and now nested one level
+deeper under `monocultures/` by the Oct 28 2026 restructure above), the
+analysis pipeline (everything formerly under `preprocessing/`, `wgcna/`,
+`deseq2/`) follows one flat, consistent layout — **the same split applies
+to every stage, without exception**:
+- **`monocultures/r_scripts/`** — every `.R` script for the analysis
+  pipeline, flat, no subfolders (`01_obj_creation.R` through `06_qc2.R`,
+  `wgcna*.R`, `deseq2*.R`).
+- **`monocultures/jobs/`** — every SLURM `.sh` job script for the analysis
+  pipeline, flat, matching names to their `r_scripts/` counterpart
   (`run_01_obj_creation.sh`, `run_wgcna.sh`, etc.).
-- **`data/<stage>/`** — unchanged from the BPCells convention above: each
-  stage's BPCells matrices + RDS pieces (counts, normalized data,
-  reductions, metadata, hdWGCNA's network payload, ...). Gitignored,
+- **`monocultures/data/<stage>/`** — unchanged from the BPCells convention
+  above: each stage's BPCells matrices + RDS pieces (counts, normalized
+  data, reductions, metadata, hdWGCNA's network payload, ...). Gitignored,
   HPC-only, regenerable from upstream stages.
-- **`results/<stage>/`** — **replaces the old separate `plots/<stage>/` +
-  `tab_data/<stage>/` split** — every plot (`.png`) and every tabular
-  result (`.csv`, `.txt`) a stage produces now lands in one
+- **`monocultures/results/<stage>/`** — **replaces the old separate
+  `plots/<stage>/` + `tab_data/<stage>/` split** — every plot (`.png`) and
+  every tabular result (`.csv`, `.txt`) a stage produces now lands in one
   `results/<stage>/` folder. Also gitignored (regenerable by rerunning the
   stage). Each script uses a single `results_dir <- "results/<stage>/"`
   variable for both, rather than separate `plots_dir`/`tab_dir`/`csv_dir`
@@ -129,15 +182,26 @@ before this reorg, but now follow `data/wgcna/` + `results/wgcna/` and
 ever see a script writing to a bare `wgcna/`/`deseq2/` path, a separate
 `plots/`/`tab_data/` tree, or reading `.R`/`.sh` scripts from
 `preprocessing/`/`wgcna/`/`deseq2/`, that's a leftover from before this
-reorg and should be fixed to match.
+reorg and should be fixed to match. (All of this is, as of Oct 28 2026,
+*itself* nested one level deeper under `monocultures/` — see the top-level
+structure section above — but the `<stage>`-keyed `data/`+`results/` split
+described here is otherwise unchanged.)
 
 ## HPC environment (Northwestern Quest)
 
-- Repo/storage lives at `/projects/b1169/boles/img_scfrp` (this is also
-  where `data/`, `results/`, `logs/`, `fastq/`, `downsampled_fastq/`,
-  `cellranger/`, `cellbender/`, `envs/` live — all gitignored, HPC-only).
-- Cell Ranger reference/probe-set files:
-  `/projects/p31535/boles/cellranger_references/`.
+- Repo/storage lives at `/projects/b1169/boles/img_scfrp`. As of the Oct 28
+  2026 restructure, `data/`, `results/`, `logs/`, `fastq/`,
+  `downsampled_fastq/`, `cellranger/`, `cellbender/`, `envs/` live one level
+  deeper, under the relevant arm — `monocultures/data/`,
+  `monocultures/logs/`, etc. for the existing pipeline, and (once built)
+  `cocultures/data/`, `cocultures/logs/`, etc. for the new arm — matching
+  the `.gitignore`'s `*/data/*`-style patterns (anchored one level deep,
+  deliberately, for exactly this split). **Currently broken**: every
+  script's hardcoded `setwd()`/`REPO=` still points at the old,
+  pre-restructure root rather than `.../img_scfrp/monocultures` — see the
+  top-level structure section above.
+- Cell Ranger reference/probe-set files (shared across both arms, unaffected
+  by the restructure): `/projects/p31535/boles/cellranger_references/`.
   Cell Ranger binary: `/projects/p31535/boles/cellranger-10.0.0/cellranger`.
 - **SLURM accounts, and why**: `b1042`/`genomics` (CPU) is the reliable
   workhorse used for Cell Ranger, seqtk, CellBender-CPU, and R
@@ -150,9 +214,12 @@ reorg and should be fixed to match.
 - R modules: `module load R/4.4.0`, `gcc/11.2.0`,
   `hdf5/1.14.1-2-gcc-12.3.0`.
 - Python/CellBender env: `module load python-miniconda3/4.10.3` +
-  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/envs/cellbender`.
+  `mamba`, then `source activate /projects/b1169/boles/img_scfrp/envs/cellbender`
+  (this path, too, needs a `monocultures/` segment inserted per the broken-
+  paths issue above — `cellbender_scripts/run_all_cellbender_cpu.sh`'s
+  `REPO` variable drives it).
 
-## Pipeline stages, in order
+## Pipeline stages, in order (monoculture arm — `monocultures/`)
 
 1. **`cellranger_configs/` + `cellranger_scripts/`** — one `cellranger multi`
    config per pool (5 real pools, plus `_downsampled` variants for 4 of
@@ -299,31 +366,48 @@ reorg and should be fixed to match.
 10. **`r_scripts/06_qc2.R`** — a second QC pass, addressing
     `03_doubletfinder.R`'s own documented caveat that per-sample
     DoubletFinder can't catch doublets formed between two *different*
-    samples sharing a GEM well. Loads `05`'s BPCells/RDS pieces, clusters
-    on `05`'s own `harmony` reduction (`resolution = 2`, same as the old
-    `06_clustering.R`), and plots per-cluster `DF.adj` composition
+    samples sharing a GEM well, **and**, as of two follow-up commits
+    (`c4b4c35`/`2f7d1b7`), also removing non-microglial cell clusters.
+    Loads `05`'s BPCells/RDS pieces, clusters on `05`'s own `harmony`
+    reduction (`resolution = 2`, same as the old `06_clustering.R`), now
+    with `cluster.name = "qc_cluster"` (renamed from `doublet_qc_cluster`
+    once this stage started removing more than just doublet clusters —
+    **if you see `doublet_qc_cluster` anywhere, that's the pre-`c4b4c35`
+    name**), and plots per-cluster `DF.adj` composition
     (`clusters_by_doublets.png`) so doublet-enriched clusters can be
     spotted **by eye** — this is a manual QC judgment call, not
     programmatic, and the resulting cluster numbers are specific to that
-    exact clustering (stored as `doublet_qc_cluster`, not `cluster`, to
-    avoid colliding with any later, more meaningful clustering column).
-    Removes those *whole clusters* (not just individual `DF.adj ==
-    "Doublet"` cells) via `subset()`, logging what was removed to
-    `removed_doublet_clusters.csv`, then repeats `04`/`05`'s
-    normalize→PCA→Harmony steps on the filtered cell set and saves in the
-    same BPCells pattern as `05` (`bpcells_counts`, `bpcells_data`,
-    `metadata.rds`, `harmony.rds`, `harmony_umap.rds`) plus its own fresh
-    `variable_features.rds` — `04`'s copy was selected against the
-    pre-filter cohort, so this stage needs its own rather than leaving
-    downstream users of the old one (like `wgcna.R`) working off a stale
-    gene selection basis. **Now the canonical upstream source for `wgcna/`
-    and `r_scripts/deseq2.R` scripts** — both were repointed from
-    `data/05_integration/` to `data/06_qc2/` once this stage was finished
-    (see their entries
-    below). Meant to be run interactively (no `.sh` job script — though the
-    user did add one, `run_06_qc2.sh`, for the batch-runnable back half
-    once the doublet clusters are known), matching `02_qc.R`'s precedent
-    for a script with an eyeballed QC decision in the middle of it.
+    exact clustering. Also plots, per `qc_cluster`, violin + UMAP panels
+    for `AIF1`/`CSF1R` (core microglial markers) plus
+    `nCount_RNA`/`nFeature_RNA`/`percent_mito`, to spot marker-low clusters
+    that are likely contaminating non-microglial cell types (also by eye).
+    Removes those *whole clusters* — both the doublet-enriched ones
+    (`doublet_clusters <- c(31, 35, 36)`) and the non-microglial ones
+    (`non_microglia_clusters <- c(26, 33)`) — together in one `subset()`
+    call (`remove <- c(doublet_clusters, non_microglia_clusters)`; note a
+    one-commit-lived typo, `non_microglial_clusters`, introduced in
+    `c4b4c35` and fixed one commit later in `2f7d1b7` — if a diff/blame
+    ever surfaces the broken intermediate version, it's already fixed on
+    `main`), logging what was removed to `removed_clusters.csv` (renamed
+    from `removed_doublet_clusters.csv` for the same reason as the cluster
+    column rename above), then repeats `04`/`05`'s normalize→PCA→Harmony
+    steps on the filtered cell set and saves in the same BPCells pattern as
+    `05` (`bpcells_counts`, `bpcells_data`, `metadata.rds`, `harmony.rds`,
+    `harmony_umap.rds`) plus its own fresh `variable_features.rds` — `04`'s
+    copy was selected against the pre-filter cohort, so this stage needs
+    its own rather than leaving downstream users of the old one (like
+    `wgcna.R`) working off a stale gene selection basis. **Now the
+    canonical upstream source for `wgcna/` and `r_scripts/deseq2.R`
+    scripts** — both were repointed from `data/05_integration/` to
+    `data/06_qc2/` once this stage was finished (see their entries below).
+    Meant to be run interactively (no `.sh` job script — though the user
+    did add one, `run_06_qc2.sh`, for the batch-runnable back half once the
+    doublet/non-microglial clusters are known), matching `02_qc.R`'s
+    precedent for a script with an eyeballed QC decision in the middle of
+    it. **The specific cluster numbers removed (`31, 35, 36` doublets;
+    `26, 33` non-microglial) are, like the original doublet-only version,
+    tied to this exact `resolution = 2` clustering on this exact upstream
+    object — re-eyeball and update them if `05`'s output ever changes.**
 
 11. **`r_scripts/wgcna.R`, `r_scripts/wgcna_stats.R`, `r_scripts/wgcna_viz.R`,
     `r_scripts/wgcna_clusterprofiler.R`** — consensus hdWGCNA network on the
@@ -390,6 +474,9 @@ reorg and should be fixed to match.
     that line erroring out (no display to print to, and the hardcoded
     module color may not exist in a given run's actual module set) after
     everything that actually gets saved has already been written.
+    `jobs/run_wgcna_stats.sh`'s resources have since been bumped further
+    (now `b1042`/`genomics`, `200G` mem, `24:00:00`) — ambient, user-made
+    edit, not something to revert.
     `wgcna_viz.R` (module radar plot,
     module-module correlogram, per-sample module eigengene dot/violin
     plots) reconstructs from `06`'s pieces plus `wgcna.R`'s
@@ -406,7 +493,7 @@ reorg and should be fixed to match.
     genotype x treatment `condition` comparisons (105 = 15 choose 2), with
     `batch` as a covariate. Loads `06_qc2.R`'s BPCells counts + metadata
     only (no normalized data/reductions needed for
-    `AggregateExpression(layer = "counts")` pseudobulk). **Rewrote the
+    `AggregateExpression()` pseudobulk). **Rewrote the
     design/contrast structure, not just the data source** — the prior
     draft's `design = ~ batch + sample` with pairwise `sample`-vs-`sample`
     contrasts (all 1770 pairs) had two compounding problems: `batch` is
@@ -433,13 +520,23 @@ reorg and should be fixed to match.
     character column, never converted to a factor anywhere in this
     pipeline, so `levels()` on it returns `NULL` and `combn(NULL, 2)`
     would have errored) — moot now that the loop is keyed on `condition`,
-    which *is* a real factor from `02_qc.R` onward. `slot = "counts"` in
-    `AggregateExpression()` changed to `layer = "counts"`, matching Seurat
-    v5's current argument name (same class of `slot`-vs-`layer` API drift
-    that broke hdWGCNA — see the debugging narrative below; not confirmed
-    to have actually broken here, changed preemptively since the fix costs
-    nothing). `r_scripts/deseq2_gsea.R` (fgsea per pairwise comparison
-    against a fixed external gene-set CSV) reads `deseq2.R`'s
+    which *is* a real factor from `02_qc.R` onward. **Note on
+    `AggregateExpression()`'s `layer`/`slot` argument — unsettled, flagged
+    again below**: an earlier pass changed `slot = "counts"` to
+    `layer = "counts"` here (matching Seurat v5's current argument name,
+    the same class of `slot`-vs-`layer` API drift that broke hdWGCNA — see
+    the debugging narrative below), but the Oct 28 2026 restructure commit
+    (`61c2414`) removed the `layer = "counts"` argument from this call
+    entirely, leaving a bare `AggregateExpression(obj, assays = "RNA",
+    group.by = "sample", return.seurat = F)` that falls back to whatever
+    `AggregateExpression()`'s own default layer is. **Not yet verified
+    whether that default is actually `"counts"`** (vs. `"data"`, which
+    would silently pseudobulk normalized/log values instead of raw counts
+    — wrong for DESeq2, which expects integer counts) — this script hasn't
+    been run since that change. Check this before trusting `deseq2.R`'s
+    output; re-add `layer = "counts"` explicitly if the default turns out
+    to be anything else. `r_scripts/deseq2_gsea.R` (fgsea per pairwise
+    comparison against a fixed external gene-set CSV) reads `deseq2.R`'s
     `lfc_shrunk_*.csv` output from `results/deseq2/` and writes its own
     results to `results/deseq2_gsea/` — repointed for the reorg but
     otherwise untouched/not yet reviewed for correctness the way `deseq2.R`
@@ -533,7 +630,13 @@ reorg and should be fixed to match.
     it would cost memory for nothing. Also added an explicit
     `requireNamespace("presto")` check with a `warning()` if missing,
     since that's a bigger lever on `FindAllMarkers()` speed than anything
-    else in the script (presto vs. base-R fallback). Also fixed a real
+    else in the script (presto vs. base-R fallback) — **superseded one
+    commit later** (`3d8a36f`, "Tweaked library loading in 07"): the
+    `requireNamespace()`/`warning()` check was removed and replaced with a
+    plain `library(presto)` alongside the script's other
+    `suppressMessages({ library(...) })` imports — presto is now assumed
+    installed (which it is, on this project's R environment) rather than
+    soft-checked. Also fixed a real
     bug in the user's draft: the final `saveRDS()` referenced an
     undefined `data_dir` (should have been `data_out_dir`) — would have
     errored at the very last line, after all the expensive clustering/
@@ -546,9 +649,12 @@ reorg and should be fixed to match.
     wall-clock parallelism (real gain, adds the complexity of computing/
     caching the neighbor graph once for both tasks to share rather than
     recomputing it twice). `jobs/run_07_clustering.sh` added to run this
-    non-interactively (`b1169`/`b1169`, 128G/12h — generous since this is
-    the first run of the fixed version and presto's actual speedup here
-    hasn't been measured yet).
+    non-interactively; its memory ask has since been bumped from the
+    original `128G` to **`300G`** (`8329d9b`, "Upped resource ask due to
+    OOM error") — i.e. the materialization fix above did *not* avoid an
+    OOM in practice at `128G`/`b1169`/`b1169`, 12h; worth remembering if
+    further memory tuning comes up, since `300G` is already a large ask
+    for this partition.
 
 **No more stale duplicates as of the `r_scripts/`/`jobs/`/`results/` reorg**:
 `preprocessing/`, `wgcna/`, and `deseq2/` (as directories) no longer exist
@@ -562,7 +668,93 @@ were deleted outright rather than merged, since `jobs/` is now the single
 canonical location and there's nothing left to duplicate against. If you
 ever see a `.R`/`.sh` file living outside `r_scripts/`/`jobs/` for this
 pipeline, or a stray `preprocessing/`/`wgcna/`/`deseq2/` directory, that's
-a regression — move it, don't resurrect the old split.
+a regression — move it, don't resurrect the old split. (As of Oct 28 2026,
+`r_scripts/`/`jobs/`/`data/`/`results/` are themselves nested one level
+deeper under `monocultures/` — see the top-level structure section at the
+top of this file.)
+
+## Coculture arm (`cocultures/`) — status as of Oct 28 2026
+
+New arm added alongside `monocultures/` in the same restructure. iPSC-
+derived microglia **co-cultured** with iPSC-derived cortical neurons
+(as opposed to the monoculture arm's microglia-alone design). **No pipeline
+built yet** — only `cocultures/configs/*.csv` exist so far (4 files:
+`JSB127_config.csv`, `JSB134-1_config.csv`, `JSB134-2_config.csv`,
+`JSB134-3_config.csv`), each a `cellranger multi` config
+(`[gene-expression]`/`[libraries]`/`[samples]` sections, same reference/
+probe-set paths as the monoculture arm). These describe **4 real GEM wells**
+— `JSB127`, `JSB134-1`, `JSB134-2`, `JSB134-3` — each probe-barcode-
+multiplexing several samples (`JSB127` has 10 samples at `BC001`-`BC010`;
+each `JSB134-*` has 6-7 samples at various `BC0NN` barcodes). `fastq_id`s
+are `127-1`/`127-2` for `JSB127` and `134-1`/`134-2`/`134-3` for the
+matching `JSB134-*` pool, all reading from one shared FASTQ directory
+(`/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq`) rather than one
+directory per pool (unlike the monoculture arm's per-pool FASTQ dirs — not
+yet confirmed whether this is a meaningful difference or just where the
+files happen to currently sit). Note `JSB134-1_config.csv`'s minor
+formatting quirk (trailing commas/empty columns throughout, vs. `JSB127`'s
+cleaner format) — likely harmless for `cellranger multi`'s parser, but
+worth a second look if that config is ever the one that fails.
+
+**Sample-naming convention, partially understood, needs the user's
+confirmation before building any downstream metadata schema**:
+`sample_id`s follow `<token1>_<token2>[_<N>]`, e.g. `KOLF_CN`, `KOLF_GALC`,
+`GALC_GALC_2`, `GBA_GBA_3`. Working hypotheses, **not yet confirmed**:
+- `token1`/`token2` are each a genotype label (`KOLF`/`GALC`/`GBA`/`GRN`/
+  `LRRK2` — the same 5 genotypes as the monoculture arm) or the literal
+  string `CN`. Most likely reading: `token1` = microglia genotype,
+  `token2` = cortical-neuron genotype, with `CN` standing in for "cortical
+  neurons alone, no microglia" (a mono-cell-type control well, analogous to
+  having no `token2` at all) — but this is a guess, not confirmed.
+- The trailing numeric suffix (`_2`, `_3`) recurs across different pools
+  with the *same* base name but a *different* probe barcode (e.g.
+  `KOLF_GALC` in `JSB127` at `BC003` vs. `KOLF_GALC_2` in `JSB134-1` at
+  `BC013`) — structurally identical to the monoculture arm's `_<batch-
+  number>` suffix, so likely a batch/replicate axis. Not confirmed whether
+  it's literally the same batch concept (same dates/meaning) as
+  monoculture's `batch`, or an independent coculture-specific batch
+  numbering.
+- Unclear whether a treatment axis (myelin/asyn, as in the monoculture
+  arm) applies to coculture at all, or whether genotype-pairing is the only
+  experimental variable here.
+
+**These ambiguities should be put to the user directly (not guessed)
+before specifying a `samples.csv`-equivalent schema for coculture** — same
+standing "ask before guessing on consequential/scientific decisions"
+convention as the rest of this project (see Conventions below).
+
+**What's needed to run CellBender on the coculture Cell Ranger outputs**
+(mirroring the monoculture arm's `make_cellbender_params.R` →
+`run_all_cellbender_cpu.sh` pipeline, entry 4 above) — this is mechanical,
+distinct from the metadata-schema ambiguity above:
+1. **Confirmation that Cell Ranger has already been run** on these 4
+   coculture pools, and **the actual Cell Ranger output directory names**
+   for `JSB127`/`JSB134-1`/`JSB134-2`/`JSB134-3` — i.e. the coculture
+   equivalent of monoculture's `pool_dirs` mapping in
+   `make_cellbender_params.R` (which maps a short pool name to its
+   `cellranger/<dir>/outs/per_sample_outs/` directory name, and which for
+   monoculture differs from the pool name itself for 4 of 5 pools because
+   of the `_downsampled` suffix). Needed regardless of what the
+   `pool_dirs` values turn out to be — CellBender's own manifest-building
+   step (`make_cellbender_params.R`-equivalent) reads each sample's
+   `metrics_summary.csv` directly out of that directory, so it has to
+   already exist on disk before anything else here can proceed.
+2. **Whether any downsampling step applies to coculture** — monoculture
+   has one pool (`iMG2`) serving as the un-downsampled depth target and
+   the other four downsampled to match it; not yet known whether an
+   analogous depth-normalization step is needed/wanted for the 4 coculture
+   pools, or whether their original (non-downsampled) Cell Ranger outputs
+   should be used directly.
+Once those are confirmed, the actual script work is a close copy of
+`make_cellbender_params.R`/`run_all_cellbender_cpu.sh` with the `pool_dirs`
+mapping and `REPO` path swapped for coculture's — no new CellBender logic
+is needed beyond that. The downstream `samples.csv`-equivalent metadata
+(genotype/treatment/batch-style columns, whatever the coculture schema
+turns out to be per the naming-convention questions above) is **not**
+required to run CellBender itself — `cell_quantities.csv`-equivalent
+generation only needs Cell Ranger's own `metrics_summary.csv` output, not
+the sample manifest — but will be needed for the first R script
+(`01_obj_creation.R`-equivalent) once CellBender finishes.
 
 ## Metadata schema, stage by stage
 
@@ -571,7 +763,8 @@ Every column below lives in `obj@meta.data` (or the standalone
 all come from conflating two of these that look similar but aren't
 (`sample` vs. `condition`, raw vs. relabeled `treatment`, `batch` vs.
 `pool_dir`) — check new plotting/grouping code against this table before
-trusting it.
+trusting it. (This table describes the **monoculture arm** only — the
+coculture arm's schema is still undetermined, see above.)
 
 | Column | Introduced in | Levels / type | What it actually distinguishes |
 |---|---|---|---|
@@ -586,6 +779,7 @@ trusting it.
 | `log10GenesPerUMI`, `percent_mito`, `percent_ribo` | `02` (`Add_Cell_Complexity()`/`Add_Mito_Ribo()`) | numeric | QC metrics computed after `01`'s object is loaded. |
 | `mito_discard`, `umi_discard`, `gene_discard`, `discard` | `02` | logical | Per-cell QC flags from `02`'s per-`sample` MAD thresholds; `02`'s saved object (`data/02_qc/`) is already filtered to `discard == F`, but the flag columns are retained in its metadata for reference. |
 | `DF.unadj`, `DF.adj` | `03` (per-capture), attached to the whole-cohort object in `04` | factor/character, `"Singlet"`/`"Doublet"` (DoubletFinder's own labels) | DoubletFinder's doublet call per cell, unadjusted and homotypic-proportion-adjusted. Computed **per individual capture** (75 separate DoubletFinder runs) — see the `03` caveat above about what this granularity can and can't catch. Only present in `03`'s own `metadata_persample/*.rds` files and in `04`'s reconstructed object; **not** in `01`'s or `02`'s metadata. |
+| `qc_cluster` | `06` (renamed from `doublet_qc_cluster`, see entry 10 above) | integer, `resolution = 2` Louvain/Leiden cluster id, specific to `06`'s own clustering | Used only as the basis for `06`'s manual doublet-cluster and non-microglial-cluster removal — not a stable/reusable clustering, don't propagate downstream as "the" cluster identity. |
 
 Practical implication for writing new grouping code: if you need "one row
 per real sample" (e.g. for a per-sample summary table or threshold), group
@@ -640,14 +834,22 @@ anything about sequencing batch structure that doesn't care about the
   carefully rather than adopting wholesale — found so far: `separate()`
   column order mismatches, a hardcoded row-index removal
   (`stats[-61, ]`), a metrics filter that matched more rows than intended,
-  wrong SLURM account/partition inherited from a different project.
+  wrong SLURM account/partition inherited from a different project, a
+  one-commit-lived undefined-variable typo in `06_qc2.R`
+  (`non_microglial_clusters` vs. `non_microglia_clusters`, self-fixed one
+  commit later), and the repo-wide restructure itself leaving every
+  script's `setwd()`/hardcoded repo-root path stale (see the top-level
+  structure section at the top of this file — not yet fixed).
 - **Ask before guessing on consequential/ambiguous decisions**, especially
   ones with real scientific stakes (e.g. DoubletFinder granularity) or that
   contradict something just-established as correct. The user explicitly
   invites this ("ask if you're unsure") and has used
   `AskUserQuestion`-style clarifications productively — don't skip it to
   move faster when a wrong guess would mean redoing real compute (CellBender
-  GPU-hours, DoubletFinder runs, etc.).
+  GPU-hours, DoubletFinder runs, etc.). This applies to the new coculture
+  arm's sample-naming/metadata-schema ambiguities too (see that section
+  above) — don't guess at what `CN`/the numeric suffix/a possible treatment
+  axis mean; ask.
 - **`als_cns_scrnaseq`** (github.com/jakesboles/als_cns_scrnaseq,
   cloned read-only for reference at
   `/home/user/jakesboles/als_cns_scrnaseq`) is the user's other project,
@@ -744,12 +946,30 @@ anything about sequencing batch structure that doesn't care about the
 
 ## Open items / things worth revisiting
 
+- **Blocking, repo-wide, not yet fixed**: every `.R`/`.sh` file under
+  `monocultures/` still hardcodes the pre-restructure repo root
+  (`setwd("/projects/b1169/boles/img_scfrp")` / `REPO=".../img_scfrp"` /
+  absolute `Rscript .../img_scfrp/r_scripts/...` lines) instead of the new
+  `/projects/b1169/boles/img_scfrp/monocultures`. Nothing under
+  `monocultures/` can currently be run on the HPC until this is fixed
+  (mechanical `/monocultures` insertion across ~30 files) — see the
+  top-level structure section at the top of this file for the full list of
+  affected files.
+- Stale, byte-identical duplicate of `samples.csv` still at repo root
+  (should be deleted — `monocultures/samples.csv` is the real one).
+- `r_scripts/deseq2.R`'s `AggregateExpression()` call lost its explicit
+  `layer = "counts"` argument in the Oct 28 2026 restructure commit
+  (`61c2414`) — not yet verified whether `AggregateExpression()`'s default
+  layer is actually `"counts"` (if it's `"data"` instead, this would
+  silently pseudobulk normalized values rather than raw counts, which
+  DESeq2 needs). Check/re-add before trusting `deseq2.R`'s next run.
 - `r_scripts/07_clustering.R` hasn't been run yet with the materialization
-  fix — verify `FindAllMarkers()` is actually fast now (and that `presto`
-  is installed; the script warns but doesn't install it). The
-  variable-features-restriction and 2-task-array ideas were raised but not
-  applied — implement if the user wants either after seeing how fast the
-  fixed version already is.
+  fix *and* the `300G` memory bump together (the OOM that drove the bump
+  happened at `128G`, with the fix already in place) — verify
+  `FindAllMarkers()` is actually fast and fits in `300G` on the next run.
+  The variable-features-restriction and 2-task-array ideas were raised but
+  not applied — implement if the user wants either after seeing how this
+  run goes.
 - `r_scripts/milo.R` hasn't been run yet — first pass, adapted from another
   project's script, now with both the genotype-vs-KOLF and genotype x
   treatment interaction analyses implemented (see the pipeline-stage entry
@@ -772,6 +992,16 @@ anything about sequencing batch structure that doesn't care about the
 - `03_doubletfinder.R`'s doublet-rate formula likely underestimates the
   true rate for this multiplexed design (see caveat above) — revisit if it
   matters for the analysis.
+- `06_qc2.R`'s specific removed-cluster lists (`doublet_clusters <- c(31,
+  35, 36)`, `non_microglia_clusters <- c(26, 33)`) are tied to one exact
+  upstream clustering — re-eyeball and update if `05_integration_harmony.R`'s
+  output changes.
+- The **coculture arm's** sample-naming convention (`<token1>_<token2>
+  [_<N>]`) and the eventual `samples.csv`-equivalent schema are still
+  genuinely ambiguous — needs the user's clarification on what `token1`/
+  `token2`/`CN`/the numeric suffix represent, and whether a treatment axis
+  applies, before that metadata file can be built. See the "Coculture arm"
+  section above.
 - ~~Root-level `jobs/` duplicates several `.sh` job scripts~~ — resolved by
   the `r_scripts/`/`jobs/`/`data/`/`results/` reorg (see the directory-
   structure section near the top and the note at the end of the
@@ -783,12 +1013,6 @@ anything about sequencing batch structure that doesn't care about the
   ever rerun with a different set of doublet-flagged clusters (or its own
   logic changes), both downstream consumers pick that up automatically
   since neither caches a copy of `06`'s cell set.
-- `r_scripts/deseq2.R`'s `AggregateExpression(..., layer = "counts")` fix
-  (changed from the prior draft's `slot = "counts"`) hasn't actually been
-  run yet to confirm it was necessary — flagged preemptively based on the
-  same `slot`-vs-`layer` API drift that broke hdWGCNA (see the debugging
-  narrative below). If it turns out `slot` still worked fine, no harm done
-  either way.
 - `05_integration_harmony.R` splits by the unified `sample` column (60
   levels) for Harmony integration, not `pool_dir` — an explicit, informed
   choice the user made after being shown the tradeoff (see the `05` pipeline
@@ -798,3 +1022,4 @@ anything about sequencing batch structure that doesn't care about the
   proactively watch/monitor PRs for CI status or reviews going forward —
   the user communicates directly in chat instead. Don't spend turns
   polling PR state unless asked.
+</content>
