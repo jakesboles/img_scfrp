@@ -15,7 +15,7 @@ Ranger runs processed identical reads despite having different
 `[samples]` barcode/sample-id assignments. The configs have since been
 corrected (`JSB134-1` now reads `fastq_id = 134-1`, `JSB134-2` reads
 `fastq_id = 134-2`, each pulling the matching files out of the shared
-`/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq` directory by that
+`/projects/b1169/boles/img_scfrp/cocultures/fastq` directory by that
 `fastq_id`), but the **existing `cellranger/JSB134-1/` and
 `cellranger/JSB134-2/` output directories on disk still reflect the old,
 buggy run** — they need to be regenerated from the corrected configs.

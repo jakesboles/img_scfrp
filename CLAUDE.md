@@ -706,7 +706,10 @@ exact same names — **no `pool_dirs` renaming needed, unlike monoculture's
 4-of-5-pools `_downsampled` suffix** (see CellBender section below).
 `fastq_id`s are `127-1`/`127-2` for `JSB127` and `134-1`/`134-2`/`134-3` for
 the matching `JSB134-*` pool, all reading from one shared FASTQ directory
-(`/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq`) rather than one
+under this arm's own location, `/projects/b1169/boles/img_scfrp/cocultures/fastq`
+(corrected from an earlier, now-stale `/projects/b1042/Gate_Lab/boles/coculture_scfrp/fastq`
+reference that all 4 configs originally carried — fixed across all of
+`cocultures/configs/*.csv` once the user flagged it), rather than one
 directory per pool (unlike the monoculture arm's per-pool FASTQ dirs — not
 confirmed whether this is meaningful or just where the files happen to
 currently sit, but not relevant to anything downstream). Note
