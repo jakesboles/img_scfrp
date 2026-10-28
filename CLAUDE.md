@@ -896,8 +896,9 @@ monoculture). Findings:
   `FindNeighbors`/`RunUMAP` calls used `dims = 1:30` throughout. So the
   lost pipeline's actual PC-count usage was **inconsistent** (10 for one
   call, 30 for three others), unlike monoculture's single established
-  `dims = 1:10` used everywhere. Not yet decided how to handle this for
-  the rebuild — see Open Items.
+  `dims = 1:10` used everywhere. **Resolved**: the rebuild standardizes on
+  `dims = 1:10` throughout, matching monoculture, not the lost pipeline's
+  literal inconsistency.
 - **No microglia/neuron label column exists anywhere in this object's
   28-column `meta.data`** — nor any `DF.unadj`/`DF.adj` doublet columns
   (confirmed by the user: DoubletFinder was never run for coculture, the
@@ -907,7 +908,11 @@ monoculture). Findings:
   like it may be an **intermediate checkpoint** (roughly monoculture's
   `05_integration_harmony.R`-equivalent stage: normalized, scaled, PCA'd,
   Harmony-integrated, clustered) rather than the fully-finished,
-  annotated object the user described — not yet resolved, see Open Items.
+  annotated object the user described. **Resolved**: confirmed by the
+  user this is the right object to build from — the microglia/neuron
+  split was done separately (e.g. in a notebook) and never written back,
+  so the rebuild does fresh marker-based labeling on this object's own
+  `RNA_snn_res.0.5` clusters rather than looking for a different object.
 - **QC/filtering columns are a completely different scheme than
   monoculture's**, and **not reconstructible from `obj@commands`** since
   whatever produced them wasn't a logged Seurat function (most likely
@@ -927,9 +932,10 @@ monoculture). Findings:
   `mito_discard`/`umi_discard`/`gene_discard` + `discard`). **Monoculture's
   established MAD-threshold method (`02_qc.R`) is NOT what produced
   these** — this is a different, rank-involving scheme whose exact rule
-  can't be confidently reverse-engineered from column values alone. Not
-  yet decided whether to replicate it or switch to monoculture's method
-  for this rebuild — see Open Items. Also notable: only `percent.mt` (no
+  can't be confidently reverse-engineered from column values alone.
+  **Resolved**: the rebuild uses monoculture's established MAD-threshold
+  method instead — this object's rank-based scheme is abandoned, not
+  replicated. Also notable: only `percent.mt` (no
   `percent.mt`-style ribo counterpart) was computed, unlike monoculture's
   `scCustomize::Add_Mito_Ribo()` (which produces both `percent_mito` and
   `percent_ribo`) — the naming (`percent.mt`, dot not underscore) also
@@ -1203,20 +1209,39 @@ anything about sequencing batch structure that doesn't care about the
   version's output the same way it does for monoculture, and that
   `sample_raw_feature_bc_matrix.h5` was named identically).
 - `inspect_reference_object.R` has been run — see the dedicated section
-  above for the full results. **Three real open decisions surfaced,
-  asked about directly rather than guessed**: (1) the surviving object has
-  no microglia/neuron label column and no DoubletFinder columns, so it
-  may be an earlier checkpoint than the "fully cleaned" object the user
-  described — is there a different, later object, or should fresh
-  annotation be done on this one's clusters? (2) the QC/filtering columns
-  use a rank-involving scheme that doesn't match monoculture's MAD-based
-  `02_qc.R` method and can't be reverse-engineered from `obj@commands` —
-  replicate it (best-effort reconstruction) or switch to monoculture's
-  established method for cross-arm consistency? (3) PC dims usage was
-  inconsistent in the lost pipeline (`FindNeighbors(pca)` used `1:10` but
-  `RunUMAP(pca)`/both harmony-side calls used `1:30`) versus monoculture's
-  single `dims = 1:10` everywhere — standardize on 10, standardize on 30,
-  or replicate the literal inconsistency? Not yet answered.
+  above for the full results. **Three open decisions, asked about
+  directly rather than guessed — now resolved**: (1) confirmed this
+  *is* the right object to build from; it has no microglia/neuron label
+  because that split was done separately (e.g. in a notebook) and never
+  written back — the rebuild will do fresh marker-based annotation on
+  this object's own clusters (`RNA_snn_res.0.5`, 27 clusters), same as
+  the lost pipeline would have. (2) **QC will use monoculture's
+  established MAD-threshold method** (`02_qc.R`'s approach), not the
+  rank-involving scheme found in the surviving object — the surviving
+  object's QC scheme is abandoned for this rebuild, not replicated. (3)
+  **PC dims: standardize on `1:10` throughout**, matching monoculture's
+  single established convention, not the lost pipeline's inconsistent
+  10-vs-30 usage.
+- **A fourth design fork surfaced on closer inspection of the object's
+  layer names — not yet asked about**: the lost pipeline's Harmony
+  integration split the RNA assay by **pool** before integrating
+  (`counts.JSB127`, `counts.JSB134-1`, `counts.JSB134-2`,
+  `counts.JSB134-3` — exactly 4 layers, one per pool, matching the 4
+  levels of the object's misleadingly-named `batch` column). This is the
+  *same* design fork monoculture's `05_integration_harmony.R` explicitly
+  resolved the other way via `AskUserQuestion` — monoculture splits by
+  the unified `sample` column (60 levels), not `pool_dir` (5 levels),
+  deliberately **not** correcting for `iMG1`/`iMG1_redo` capture-level
+  technical variation. For coculture, the analogous choice is: split by
+  **pool** (4 levels, what the lost pipeline actually did — would
+  correct for any technical difference between the 4 GEM wells, which
+  matters here since, unlike monoculture, pool and the real
+  genotype-pair-replicate identity don't even align 1:1 for 3 of the 10
+  conditions — recall `JSB134-3` mixes batch-2 and batch-3 cells) vs.
+  split by the unified genotype-pair **condition** (10 levels, analogous
+  to monoculture's `sample`) vs. split by the full 30-level
+  genotype-pair-x-batch **sample** identity. Not yet asked — see Open
+  Items.
 - Decided without asking (low-stakes, consistent with established
   convention, easily revisited): add `percent_ribo` alongside
   `percent_mito` via `scCustomize::Add_Mito_Ribo()` for consistency with
