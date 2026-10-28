@@ -1222,26 +1222,25 @@ anything about sequencing batch structure that doesn't care about the
   **PC dims: standardize on `1:10` throughout**, matching monoculture's
   single established convention, not the lost pipeline's inconsistent
   10-vs-30 usage.
-- **A fourth design fork surfaced on closer inspection of the object's
-  layer names — not yet asked about**: the lost pipeline's Harmony
+- **A fourth design fork, surfaced on closer inspection of the object's
+  layer names — asked about, now resolved**: the lost pipeline's Harmony
   integration split the RNA assay by **pool** before integrating
   (`counts.JSB127`, `counts.JSB134-1`, `counts.JSB134-2`,
   `counts.JSB134-3` — exactly 4 layers, one per pool, matching the 4
   levels of the object's misleadingly-named `batch` column). This is the
   *same* design fork monoculture's `05_integration_harmony.R` explicitly
   resolved the other way via `AskUserQuestion` — monoculture splits by
-  the unified `sample` column (60 levels), not `pool_dir` (5 levels),
-  deliberately **not** correcting for `iMG1`/`iMG1_redo` capture-level
-  technical variation. For coculture, the analogous choice is: split by
-  **pool** (4 levels, what the lost pipeline actually did — would
-  correct for any technical difference between the 4 GEM wells, which
-  matters here since, unlike monoculture, pool and the real
-  genotype-pair-replicate identity don't even align 1:1 for 3 of the 10
-  conditions — recall `JSB134-3` mixes batch-2 and batch-3 cells) vs.
-  split by the unified genotype-pair **condition** (10 levels, analogous
-  to monoculture's `sample`) vs. split by the full 30-level
-  genotype-pair-x-batch **sample** identity. Not yet asked — see Open
-  Items.
+  the unified `sample` column (60 levels), not `pool_dir` (5 levels).
+  **Resolved for coculture**: split by the **full 30-level genotype-pair
+  x batch-replicate sample identity** (e.g. `KOLF_KOLF_2` as its own
+  layer) — the finest-grained of the three options considered (pool: 4
+  levels; unified genotype-pair condition: 10 levels; full sample: 30
+  levels), and notably *not* what the lost pipeline did (pool-level).
+  This corrects for technical variation at the same per-sample
+  granularity monoculture's own split achieves, while additionally
+  separating `JSB134-3`'s two mixed batches into their own layers —
+  something a pool-level split structurally couldn't do here, since pool
+  and real sample identity don't align 1:1 for 3 of the 10 conditions.
 - Decided without asking (low-stakes, consistent with established
   convention, easily revisited): add `percent_ribo` alongside
   `percent_mito` via `scCustomize::Add_Mito_Ribo()` for consistency with
