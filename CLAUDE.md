@@ -864,14 +864,195 @@ diagnostic output: `obj@commands` will capture the `FindClusters`
 call(s) (algorithm, resolution, graph name) but **not** the labeling step
 itself, since a manual `obj$cell_type <- ...`-style assignment after
 eyeballing marker plots doesn't log to `obj@commands` the way a Seurat
-function call does. Expect to find a cluster-id column and a separate
-cell-type-label column (microglia/neuron, or similar) in `meta.data`, but
-**not yet known which specific marker genes were used for the by-eye
-call** (monoculture's `06_qc2.R` used `AIF1`/`CSF1R` for "is this
-microglia"; this arm's neuron side would need its own markers, e.g.
-something like `RBFOX3`/`MAP2`/`TUBB3`/`SYP`, but this hasn't been
-confirmed) — ask once the diagnostic output is in hand, rather than
-guessing at which genes were actually checked.
+function call does.
+
+**`inspect_reference_object.R` run — results, as of this writing**:
+`object_diagnostic.txt` came back for a `146472`-cell x `18129`-gene
+object (gene count consistent with the probe-set panel, same as
+monoculture). Findings:
+- **Reductions/graphs present**: `pca`, `umap` (off `pca`), `harmony`,
+  `HarmonyUMAP` (off `harmony`) — same pre/post-integration UMAP pattern
+  as monoculture's `05_integration_harmony.R`. `RNA_nn`/`RNA_snn` graphs
+  also present (built off `harmony`).
+- **`obj@commands` parameters recovered** (directly reusable):
+  `NormalizeData` (defaults: `LogNormalize`, `scale.factor = 10000`);
+  `FindVariableFeatures` (`selection.method = "vst"`, `nfeatures = 2000`,
+  all other args default); `ScaleData` (defaults); `RunPCA` (`npcs = 50`,
+  `seed.use = 42`, otherwise default); `FindClusters` (`algorithm = 1`
+  [original Louvain, **not** monoculture's `algorithm = 4`/Leiden],
+  `resolution = 0.5` [**not** monoculture's `06_qc2.R`'s `resolution =
+  2`], `graph.name = "RNA_snn"`, producing 27 clusters, `0`-`26`) — this
+  is the clustering the manual microglia/neuron labeling would have been
+  done on top of.
+- **`obj@commands` gaps, both genuinely informative**: (1) no
+  `IntegrateLayers`/`RunHarmony` entry at all — the `harmony` reduction
+  exists but whatever produced it isn't logged, so the exact
+  invocation (Seurat's `IntegrateLayers(method = HarmonyIntegration)`,
+  which monoculture uses, vs. calling the standalone `harmony::RunHarmony()`
+  directly, which doesn't log to `obj@commands`) can't be confirmed from
+  this object alone. (2) `FindNeighbors(reduction = "pca")` was logged
+  with `dims = 1:10`, but the immediately-following `RunUMAP(reduction =
+  "pca")` was logged with `dims = 1:30` — and both the harmony-side
+  `FindNeighbors`/`RunUMAP` calls used `dims = 1:30` throughout. So the
+  lost pipeline's actual PC-count usage was **inconsistent** (10 for one
+  call, 30 for three others), unlike monoculture's single established
+  `dims = 1:10` used everywhere. **Resolved**: the rebuild standardizes on
+  `dims = 1:10` throughout, matching monoculture, not the lost pipeline's
+  literal inconsistency.
+- **No microglia/neuron label column exists anywhere in this object's
+  28-column `meta.data`** — nor any `DF.unadj`/`DF.adj` doublet columns
+  (confirmed by the user: DoubletFinder was never run for coculture, the
+  same early omission monoculture itself made before `03_doubletfinder.R`
+  was added — to be built in from the start this time, not reverse-
+  engineered from this object). Given both are missing, this object looks
+  like it may be an **intermediate checkpoint** (roughly monoculture's
+  `05_integration_harmony.R`-equivalent stage: normalized, scaled, PCA'd,
+  Harmony-integrated, clustered) rather than the fully-finished,
+  annotated object the user described. **Resolved**: confirmed by the
+  user this is the right object to build from — the microglia/neuron
+  split was done separately (e.g. in a notebook) and never written back,
+  so the rebuild does fresh marker-based labeling on this object's own
+  `RNA_snn_res.0.5` clusters rather than looking for a different object.
+- **QC/filtering columns are a completely different scheme than
+  monoculture's**, and **not reconstructible from `obj@commands`** since
+  whatever produced them wasn't a logged Seurat function (most likely
+  pre-filtering applied to barcodes before `CreateSeuratObject()`, or a
+  bare `meta.data` column assignment): per-metric `<metric>_High`/
+  `<metric>_Low` (fixed value cutoffs), `<metric>_RankCutoff_High`/
+  `<metric>_RankCutoff_Low` (rank-based cutoffs — cells ranked by that
+  metric, a rank threshold applied), and `<metric>_Outlier` (the per-cell
+  verdict, as `"Not Outlier"` or `"<High|Low> Outlier (<n>)"`) for each of
+  `nCount_RNA`, `nFeature_RNA`, `percent.mt`, plus an overall `Outlier`
+  master column — a `rank`/`index` pair of columns also exists, consistent
+  with an external rank-based filtering step. All object-wide `Outlier`
+  values are `"Not Outlier"` (object is already filtered to survivors),
+  but the per-metric `*_Outlier` sub-flags still show real flagged values
+  for `percent.mt` specifically (same "keep the sub-flags even though the
+  master flag already resolved to kept" pattern as monoculture's `02_qc.R`
+  `mito_discard`/`umi_discard`/`gene_discard` + `discard`). **Monoculture's
+  established MAD-threshold method (`02_qc.R`) is NOT what produced
+  these** — this is a different, rank-involving scheme whose exact rule
+  can't be confidently reverse-engineered from column values alone.
+  **Resolved**: the rebuild uses monoculture's established MAD-threshold
+  method instead — this object's rank-based scheme is abandoned, not
+  replicated. Also notable: only `percent.mt` (no
+  `percent.mt`-style ribo counterpart) was computed, unlike monoculture's
+  `scCustomize::Add_Mito_Ribo()` (which produces both `percent_mito` and
+  `percent_ribo`) — the naming (`percent.mt`, dot not underscore) also
+  suggests base Seurat's `PercentageFeatureSet()` was used directly rather
+  than `scCustomize`.
+- **The real genotype-pair + batch-replicate structure isn't decomposed
+  into separate columns** — `meta.data$batch` here actually holds the
+  **pool/GEM-well identity** (`JSB127`/`JSB134-1`/`JSB134-2`/`JSB134-3`,
+  i.e. monoculture's `pool_dir` concept, confusingly reusing the name
+  `batch`) — it is **not** the genotype-pair-replicate 1/2/3 batch axis
+  discussed earlier in this file. That real batch/replicate number, along
+  with the neuron and microglia genotypes, only exists bundled together
+  as one string in `sample_ID` (e.g. `"LRRK2_LRRK2_3"`) and
+  `sample_barcode` (`sample_ID` + cell barcode concatenated, likely used
+  for some join). **The lost pipeline apparently never parsed `sample_ID`
+  into separate `neuron_genotype`/`microglia_genotype`/`batch` columns the
+  way monoculture's `01_obj_creation.R` parses `genotype`/`treatment`/
+  `batch` from `samples.csv`** — doing that parsing is a clear, concrete
+  improvement to make in the rebuild (not ambiguous, no need to ask): the
+  "Coculture arm" section above already documents exactly how to split
+  `sample_ID` into its two genotype tokens and trailing batch number.
+
+## Coculture arm pipeline, as built (mirrors monoculture's `01`-`06`, plus a new `07`)
+
+With all four open decisions above resolved, the coculture arm's
+`r_scripts/01_obj_creation.R` through `07_annotation.R` were written,
+closely mirroring the monoculture arm's established scripts
+stage-for-stage. **None of these have been run yet** — CellBender was
+still running as of this writing, and every later stage depends
+transitively on its output. Written now so the pipeline is ready to go
+the moment CellBender finishes, not tested against real data.
+
+1. **`01_obj_creation.R`** — assembles all 30 CellBender outputs into one
+   Seurat object, BPCells on-disk (`data/01_obj_assembly/`), driven by
+   `cellbender_scripts/cell_quantities.csv`. Two simplifications versus
+   monoculture's version: no `samples.csv` join (this arm has no such
+   file — `neuron_genotype`/`microglia_genotype`/`batch` are parsed
+   directly out of each `sample` string, per the naming convention
+   documented above) and no `_redo`-style capture-vs-unified-sample split
+   (every (pool_dir, sample) pair here is both a distinct capture and a
+   distinct biological sample, so `sample` alone is the full, unambiguous
+   identity — no `pool_dir` disambiguation needed the way monoculture's
+   `iMG1`/`iMG1_redo` requires, though `pool_dir` is still carried as
+   metadata for reference).
+
+2. **`02_qc.R`** — QC using monoculture's established MAD-threshold
+   method (same multipliers, same `scCustomize::Add_Cell_Complexity()`/
+   `Add_Mito_Ribo()`) — a user-confirmed choice, not the rank-based scheme
+   found in this arm's lost reference object. Per-**sample** (30-level)
+   thresholds, faceted/colored by this arm's own `batch` (3 levels) and
+   `condition` (10 genotype-pair levels) in place of monoculture's
+   4-level `batch`/15-level `condition`. No job script (meant to be run
+   interactively, same as monoculture's).
+
+3. **`03_doubletfinder.R`** — DoubletFinder as a **30-task SLURM array**
+   (`jobs/run_03_doubletfinder.sh`), one per (pool_dir, sample) capture.
+   **New for this arm** — the lost pipeline never ran DoubletFinder at
+   all (confirmed by the user), the same early omission monoculture
+   itself made before adding its own `03_doubletfinder.R`. Simplified
+   versus monoculture's version: matches into `02`'s metadata by `sample`
+   alone (exact, unambiguous), not `pool_dir` + `sample`, since no two
+   captures here ever share a `sample` value.
+
+4. **`04_norm_pca.R`** — rebuilds the whole-cohort object from `02`'s
+   filtered counts + metadata, attaches `03`'s `DF.unadj`/`DF.adj`, then
+   `NormalizeData()`/`FindVariableFeatures()`/`ScaleData()`/
+   `RunPCA(npcs = 50)` — all default arguments, matching exactly what was
+   recovered from the lost pipeline's own `obj@commands` (see above), so
+   no changes needed from monoculture's version beyond the plot palettes
+   (`condition`/`neuron_genotype`/`microglia_genotype`/`batch` in place of
+   `condition`/`genotype`/`treatment`/`batch`).
+
+5. **`05_integration_harmony.R`** — `IntegrateLayers(method =
+   "HarmonyIntegration")`, `dims = 1:10` throughout (not the lost
+   pipeline's inconsistent 10-vs-30), splitting the RNA assay by the
+   **full 30-level `sample` identity** before integrating — not pool (4
+   levels, what the lost pipeline did) and not the 10-level `condition`.
+   All three of these were explicit, user-confirmed choices (see above),
+   made because the lost pipeline's own version of this step did at
+   least one of them differently and its actual Harmony invocation
+   wasn't even logged to check against.
+
+6. **`06_qc2.R`** — removes whole clusters heavily enriched for
+   DoubletFinder doublets (same `resolution = 2`/`algorithm = 4` Leiden
+   clustering and by-eye judgment call as monoculture's version,
+   `doublet_clusters` starting empty, meant to be filled in after
+   inspecting `clusters_by_doublets.png`), then re-normalizes/PCAs/
+   re-integrates on the filtered set. **Does not also remove any
+   cell-type cluster** the way monoculture's version removes
+   non-microglial contamination — this arm wants to *keep* both cell
+   types, just label them apart (see `07` below), so there's no second
+   `non_microglia_clusters`-style list here. `jobs/run_06_qc2.sh` added
+   for the batch-runnable back half, same precedent as monoculture's own.
+
+7. **`07_annotation.R`** — **new, monoculture has no counterpart**: the
+   broad microglia-vs-neuron labeling step. Clusters fresh on `06`'s
+   harmony reduction (`resolution = 1`, separate from `06`'s own
+   `qc_cluster`), plots microglia markers (`AIF1`/`CSF1R`, matching
+   monoculture's `06_qc2.R` exactly) and neuron markers (`RBFOX3`/`MAP2`/
+   `TUBB3`/`SYP`/`STMN2` — canonical cortical-neuron markers chosen as a
+   reasonable default, **not confirmed against what the lost pipeline
+   actually used**, since a manual labeling step can't be recovered from
+   `obj@commands`; worth a second look against the real per-cluster
+   expression before trusting the final call). `cluster_labels` starts
+   empty and the script hard-`stop()`s until every cluster has been
+   assigned "Microglia" or "Neuron" by eye — same interactive-script
+   precedent as `02_qc.R`/`06_qc2.R`. `jobs/run_07_annotation.sh` added
+   for the batch-runnable back half.
+
+**Not yet run, any of them** — written against the established
+monoculture conventions and the resolved design decisions above, but
+untested: CellBender was still running as of this writing, and every
+stage above depends on its output transitively. Two things to double
+check on first real run: (1) the neuron marker panel in
+`07_annotation.R`, since it's an unconfirmed default; (2) that the SLURM
+resource asks (copied from monoculture's job scripts unchanged) are
+actually adequate for this arm's own cell/gene scale.
 
 ## Metadata schema, stage by stage
 
@@ -908,6 +1089,29 @@ must stay distinguishable. Use `condition` (not `sample`) for anything
 genotype x treatment-level (15 groups), and `batch` (not `pool_dir`) for
 anything about sequencing batch structure that doesn't care about the
 `iMG1`/`iMG1_redo` split.
+
+### Coculture arm's schema (as built in `cocultures/r_scripts/01_obj_creation.R` onward)
+
+Same cautions as the monoculture table above apply here — in particular,
+`batch` means something different in each arm (3 genotype-pair-replicate
+levels here vs. 4 sequencing-batch levels there) despite the shared
+column name, and this arm has no `treatment`/`pool_dir`-ambiguity
+concept at all.
+
+| Column | Introduced in | Levels / type | What it actually distinguishes |
+|---|---|---|---|
+| `sample` | `01` (full `sample_id` string, e.g. `KOLF_KOLF_2`) | character, 30 unique values | The full, unambiguous genotype-pair x batch-replicate identity — unlike monoculture, this alone already distinguishes every real capture; no `pool_dir` disambiguation is needed. |
+| `pool_dir` | `01` (from `cell_quantities.csv`) | character, 4 values: `JSB127`, `JSB134-1`, `JSB134-2`, `JSB134-3` | The real GEM well a cell's capture came from. Carried for reference/provenance only — not needed to disambiguate `sample`, and (unlike monoculture) does **not** determine `batch` on its own, since `JSB134-3` spans two batches. |
+| `neuron_genotype`, `microglia_genotype` | `01` (parsed from `sample_id`'s two tokens) | character in `01`, factor in `02` onward — 5 levels (`KOLF, GALC, GBA, GRN, LRRK2`) for `neuron_genotype`; 6 levels (`CN` + the same 5) for `microglia_genotype` | The two genotype tokens. `microglia_genotype == "CN"` means a neuron-alone well (no microglia added), not a 6th real genotype. |
+| `batch` | `01` (parsed from `sample_id`'s trailing numeric suffix, absent = 1) | factor in `02` onward, levels `"Batch 1".."Batch 3"` | This arm's own 3-level genotype-pair-replicate number — wholly independent of monoculture's 4-level `batch` despite the shared name. |
+| `condition` | `02` (new, `paste0(neuron_genotype, "_", microglia_genotype)`) | factor, 10 levels (the real genotype-pair combinations; not a full 6x6 cross) | Grouping/coloring variable for QC and PCA/UMAP plots, analogous to monoculture's `condition` — distinct from `sample` for the same reason (collapses across the 3 batch replicates). |
+| `nCount_RNA`, `nFeature_RNA` | Seurat default, at `01`'s `CreateSeuratObject()` | numeric | Raw UMI/gene counts. |
+| `log10GenesPerUMI`, `percent_mito`, `percent_ribo` | `02` (`Add_Cell_Complexity()`/`Add_Mito_Ribo()`) | numeric | QC metrics — same functions monoculture uses, even though the lost reference object only ever had a bare `percent.mt` (see above). |
+| `mito_discard`, `umi_discard`, `gene_discard`, `discard` | `02` | logical | Per-cell QC flags from `02`'s per-`sample` MAD thresholds — same method and multipliers as monoculture's `02_qc.R`. |
+| `DF.unadj`, `DF.adj` | `03` (per-capture), attached to the whole-cohort object in `04` | factor/character, `"Singlet"`/`"Doublet"` | DoubletFinder's doublet call per cell — **new for this arm**, not present in the lost reference object at all. |
+| `qc_cluster` | `06` | integer, `resolution = 2` Leiden cluster id, specific to `06`'s own clustering | Basis for `06`'s manual doublet-cluster removal only — not a stable/reusable clustering, and (unlike monoculture's same-named column) never also used to remove a cell-type cluster. |
+| `annotation_cluster` | `07` | integer, `resolution = 1` Leiden cluster id, specific to `07`'s own clustering | Basis for `07`'s manual microglia/neuron labeling — a separate, coarser clustering from `06`'s `qc_cluster`, not reused from it. |
+| `cell_type` | `07` | factor, `"Microglia"`/`"Neuron"` (by eye, from `annotation_cluster`) | This arm's defining broad cell-type split — monoculture has no equivalent column, since it's microglia-only by design. |
 
 ## Conventions established in this codebase
 
@@ -1123,14 +1327,64 @@ anything about sequencing batch structure that doesn't care about the
   that `metrics_summary.csv` existed per-sample under this Cell Ranger
   version's output the same way it does for monoculture, and that
   `sample_raw_feature_bc_matrix.h5` was named identically).
-- The coculture arm's original preprocessing pipeline (past CellBender)
-  was lost; `cocultures/r_scripts/inspect_reference_object.R` is written
-  to reverse-engineer it from a surviving finished object's
-  `obj@commands`/`meta.data`/`VariableFeatures`, but **not yet run** —
-  waiting on the user to point it at the real object on Quest and share
-  the resulting `object_diagnostic.txt`. See the dedicated section above
-  for what's still unknown (in particular, how the microglia-vs-neuron
-  annotation was actually produced).
+- `inspect_reference_object.R` has been run — see the dedicated section
+  above for the full results. **Three open decisions, asked about
+  directly rather than guessed — now resolved**: (1) confirmed this
+  *is* the right object to build from; it has no microglia/neuron label
+  because that split was done separately (e.g. in a notebook) and never
+  written back — the rebuild will do fresh marker-based annotation on
+  this object's own clusters (`RNA_snn_res.0.5`, 27 clusters), same as
+  the lost pipeline would have. (2) **QC will use monoculture's
+  established MAD-threshold method** (`02_qc.R`'s approach), not the
+  rank-involving scheme found in the surviving object — the surviving
+  object's QC scheme is abandoned for this rebuild, not replicated. (3)
+  **PC dims: standardize on `1:10` throughout**, matching monoculture's
+  single established convention, not the lost pipeline's inconsistent
+  10-vs-30 usage.
+- **A fourth design fork, surfaced on closer inspection of the object's
+  layer names — asked about, now resolved**: the lost pipeline's Harmony
+  integration split the RNA assay by **pool** before integrating
+  (`counts.JSB127`, `counts.JSB134-1`, `counts.JSB134-2`,
+  `counts.JSB134-3` — exactly 4 layers, one per pool, matching the 4
+  levels of the object's misleadingly-named `batch` column). This is the
+  *same* design fork monoculture's `05_integration_harmony.R` explicitly
+  resolved the other way via `AskUserQuestion` — monoculture splits by
+  the unified `sample` column (60 levels), not `pool_dir` (5 levels).
+  **Resolved for coculture**: split by the **full 30-level genotype-pair
+  x batch-replicate sample identity** (e.g. `KOLF_KOLF_2` as its own
+  layer) — the finest-grained of the three options considered (pool: 4
+  levels; unified genotype-pair condition: 10 levels; full sample: 30
+  levels), and notably *not* what the lost pipeline did (pool-level).
+  This corrects for technical variation at the same per-sample
+  granularity monoculture's own split achieves, while additionally
+  separating `JSB134-3`'s two mixed batches into their own layers —
+  something a pool-level split structurally couldn't do here, since pool
+  and real sample identity don't align 1:1 for 3 of the 10 conditions.
+- Decided without asking (low-stakes, consistent with established
+  convention, easily revisited): add `percent_ribo` alongside
+  `percent_mito` via `scCustomize::Add_Mito_Ribo()` for consistency with
+  monoculture, even though the lost pipeline only ever computed
+  `percent.mt`; use `IntegrateLayers(method = HarmonyIntegration)` for the
+  rebuild's Harmony step, matching monoculture, since the lost pipeline's
+  actual invocation wasn't logged either way; parse `sample_ID` into
+  separate `neuron_genotype`/`microglia_genotype`/`batch` columns (see the
+  dedicated section above), since the lost pipeline apparently never did
+  this and it's a clear improvement, not an ambiguous one.
+- ~~DoubletFinder will be built into the coculture rebuild from the
+  start~~ — done: `cocultures/r_scripts/03_doubletfinder.R` written (the
+  surviving reference object never had it, the same omission monoculture
+  itself initially made before its own `03_doubletfinder.R` was added).
+- The full coculture rebuild (`cocultures/r_scripts/01_obj_creation.R`
+  through `07_annotation.R`, plus their `jobs/*.sh` counterparts) is
+  **written but not yet run on the HPC** — CellBender was still running
+  as of this writing, and everything downstream depends on its output.
+  See the dedicated "Coculture arm pipeline, as built" section above for
+  what each stage does. Two things flagged there to double-check on
+  first real run: `07_annotation.R`'s neuron marker panel
+  (`RBFOX3`/`MAP2`/`TUBB3`/`SYP`/`STMN2`) is an unconfirmed default, not
+  verified against whatever the lost pipeline actually used; and the
+  SLURM resource asks in `jobs/*.sh` were copied from monoculture's job
+  scripts unchanged, not tuned for this arm's own scale.
 - ~~Root-level `jobs/` duplicates several `.sh` job scripts~~ — resolved by
   the `r_scripts/`/`jobs/`/`data/`/`results/` reorg (see the directory-
   structure section near the top and the note at the end of the
