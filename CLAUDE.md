@@ -794,6 +794,38 @@ mirroring the monoculture arm's `make_cellbender_params.R` →
   verified against the real Cell Ranger output tree the user provided),
   but unverified against an actual run.
 
+**Sequencing-depth diagnostic — built, not yet run** (`cocultures/seqtk/
+get_seqtk_proportions.R`, mirroring monoculture's
+`seqtk/get_seqtk_proportions.R`): the user explicitly does **not** want a
+downsampling step for this arm yet, but asked to see *how different*
+sequencing depth actually is across the 4 pools before that decision gets
+revisited. Same core computation as monoculture's script (per-pool reads,
+mean reads/cell, cells from `cellranger/<pool>/outs/qc_library_metrics.csv`;
+`target` = the lowest-`rpc` pool; `target_fraction = target/rpc` for the
+rest) — trimmed to `library(tidyverse)` alone rather than monoculture's
+~40-package import (Seurat, DESeq2, MAST, ComplexHeatmap, ... — unrelated
+to this computation, just slows startup; not fixed in the monoculture
+script itself since this is a new file, but worth porting that fix back
+if `monocultures/seqtk/get_seqtk_proportions.R` is ever revisited). Writes
+three things, all into `cocultures/seqtk/`: `depth_by_pool.csv` (the full
+reads/rpc/cells/target/target_fraction table, for inspection),
+`downsample_targets.txt` (same `pool,target_fraction` format monoculture's
+`seqtk.sh` consumes, written in case the no-downsampling decision changes
+later — pools already at the target are dropped, same as monoculture), and
+`reads_per_cell_by_pool.png` (a bar chart of mean reads/cell per pool with
+the target depth marked — the actual "how bad is it" view, which
+monoculture's script never needed since it only ever fed the raw
+fractions straight to `seqtk`). **Important caveat, noted in the script's
+own comments**: this is necessarily **per-pool**, not per-batch, depth —
+`qc_library_metrics.csv` is a whole-GEM-well metric, and `JSB134-3` holds
+two different batches (`_2`/`_3`) sequenced together in one well, so their
+depths can't be separated from this file. The other 3 pools each map to
+exactly one batch, so per-pool depth doubles as per-batch depth for those.
+**Not yet run** — no execution environment available outside the HPC, so
+the actual numbers/plot don't exist yet; run
+`Rscript seqtk/get_seqtk_proportions.R` from `cocultures/` on Quest to
+generate them.
+
 ## Metadata schema, stage by stage
 
 Every column below lives in `obj@meta.data` (or the standalone
