@@ -56,6 +56,8 @@ rsconnect/
 */data/*
 *.tar.gz
 envs/*
+*.pdf
+*.png
 
 # All plots and tabular results (from preprocessing/wgcna/deseq2 R scripts
 # under r_scripts/) live under one results/ tree, one subfolder per step --
