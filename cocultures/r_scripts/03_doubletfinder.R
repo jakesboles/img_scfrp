@@ -1,0 +1,190 @@
+# Runs as a SLURM job array (see run_03_doubletfinder.sh), one task per
+# (pool_dir, sample) capture -- 30 total: 10 genotype-pair conditions x 3
+# batch replicates each. Mirrors monocultures/r_scripts/03_doubletfinder.R's
+# per-capture pattern, simplified because this arm has no monoculture-style
+# redo captures -- every `sample` value here is already a distinct capture
+# AND a distinct biological sample, so no pool_dir/sample_unified
+# disambiguation is needed to find the right cells in 02_qc.R's metadata.
+#
+# DoubletFinder was never run on this arm's lost reference object
+# (confirmed by the user) -- this is a fresh addition for the rebuild, not
+# a port of anything from that object. Same doublet-rate caveat as
+# monoculture's version: because DoubletFinder runs within one
+# demultiplexed sample's own cells rather than across the whole GEM well,
+# the doublet rate below is computed from that one sample's own recovered
+# cell count, likely underestimating the true rate for a design this
+# heavily multiplexed.
+
+suppressMessages({
+  library(tidyverse)
+  library(Seurat)
+  library(BPCells)
+  library(DoubletFinder)
+  library(scCustomize)
+  library(patchwork)
+})
+
+message2 <- function(text){
+  v1 <- paste(rep("~", 15), collapse = "")
+  message(paste0(v1, text, v1))
+}
+
+setwd("/projects/b1169/boles/img_scfrp/cocultures")
+
+results_dir <- "results/03_doubletfinder/"
+dir.create(results_dir, showWarnings = F, recursive = T)
+
+data_out_dir <- "data/03_doubletfinder/"
+dir.create(paste0(data_out_dir, "bpcells_persample/"), showWarnings = F, recursive = T)
+dir.create(paste0(data_out_dir, "metadata_persample/"), showWarnings = F, recursive = T)
+
+# Figure out which capture this task handles ---------------------------------
+
+task_id <- Sys.getenv("SLURM_ARRAY_TASK_ID")
+if (task_id == "") {
+  stop("SLURM_ARRAY_TASK_ID is not set -- this script is meant to run as a ",
+       "SLURM job array (see run_03_doubletfinder.sh), one task per capture, ",
+       "not as a standalone Rscript call.")
+}
+task_id <- as.integer(task_id)
+
+message2("Loading manifest")
+
+# cell_quantities.csv has one row per (pool_dir, sample) capture -- the
+# same 30 distinct-capture identities 01_obj_creation.R wrote to
+# bpcells_persample/. Sorting guarantees the same capture <-> array index
+# mapping every run.
+manifest <- read.csv("cellbender_scripts/cell_quantities.csv") %>%
+  arrange(pool_dir, sample)
+
+if (task_id < 1 | task_id > nrow(manifest)) {
+  stop(paste0("SLURM_ARRAY_TASK_ID (", task_id, ") is out of range for ",
+              nrow(manifest), " captures -- check the --array range in ",
+              "run_03_doubletfinder.sh against nrow(cell_quantities.csv)."))
+}
+
+capture <- manifest[task_id, ]
+sample_id <- capture$sample
+pool_dir <- capture$pool_dir
+
+message2(paste0("Processing ", sample_id, " (", pool_dir, ", task ", task_id,
+                "/", nrow(manifest), ")"))
+
+# Load and filter this capture's matrix ---------------------------------------
+
+message2("Loading raw per-capture matrix")
+
+# Cell barcodes in the per-capture matrices from 01_obj_creation.R are NOT
+# sample-prefixed (that prefixing happens later, at the whole-cohort merge
+# step), so it's reapplied here to match 02_qc.R's metadata, whose cell
+# names are "<sample_id>_<barcode>".
+mat <- open_matrix_dir(paste0("data/01_obj_assembly/bpcells_persample/", sample_id))
+colnames(mat) <- paste0(sample_id, "_", colnames(mat))
+
+message2("Loading QC metadata for this capture")
+
+meta_all <- readRDS("data/02_qc/metadata.rds")
+
+# `sample` alone is an exact, unambiguous match here -- unlike monoculture,
+# no two captures in this arm ever share a `sample` value, so there's no
+# need for a pool_dir + sample_unified join key the way monoculture's
+# iMG1/iMG1_redo situation requires.
+meta_sample <- meta_all[meta_all$sample == sample_id, ]
+
+# On purpose: this is the cell count for this demultiplexed sample BEFORE
+# 02_qc.R's discard filter (see the doublet-rate note at the top of this
+# file), matching monoculture's own 03_doubletfinder.R exactly.
+n_cells_preqc <- nrow(meta_sample)
+
+meta_sample <- meta_sample[meta_sample$discard == F, ]
+
+# DoubletFinder's synthetic-doublet generation samples cell pairs WITH
+# replacement, which BPCells' `[` operator rejects. Materializing to a
+# normal in-memory matrix avoids that -- fine memory-wise for one
+# sample's few thousand cells, and NormalizeData()/ScaleData()/RunPCA()
+# below need it materialized anyway.
+mat <- as(mat[, rownames(meta_sample)], "dgCMatrix")
+
+doublet_rate <- (n_cells_preqc / 10000) * 0.08
+
+obj <- CreateSeuratObject(counts = mat, meta.data = meta_sample)
+
+# Need to remove non-probe genes again -- 01_obj_creation.R's
+# bpcells_persample matrices were written before the probe-set gene
+# filter was applied to the merged object, so they still carry the full
+# gene set.
+probes <- read.csv("/projects/p31535/boles/cellranger_references/Chromium_Human_Transcriptome_Probe_Set_v1.1.0_GRCh38-2024-A.csv",
+                   skip = 5)
+genes <- probes$probe_id %>%
+  str_split_i(pattern = "[|]", i = 2) %>%
+  unique()
+
+idx <- rownames(obj) %in% genes
+obj <- obj[idx, ]
+
+# Define function to run DoubletFinder ---------------------------------------
+
+run_doubletfinder <- function(s, doublet_rate, sample_id){
+
+  # Standard normalization and scaling
+  s <- s %>% NormalizeData() %>% FindVariableFeatures() %>% ScaleData()
+
+  # Default Seurat clustering and UMAP
+  s <- s %>% RunPCA() %>% FindNeighbors(dims = 1:10) %>% FindClusters()
+  s <- RunUMAP(s, dims = 1:10)
+
+  # pK Identification (no ground-truth)
+  sweep.res.list <- paramSweep(s, PCs = 1:10, sct = FALSE)
+  sweep.stats <- summarizeSweep(sweep.res.list, GT = FALSE)
+  bcmvn <- find.pK(sweep.stats)
+  max_index <- which.max(bcmvn$BCmetric)
+  optimal_pK <- as.numeric(as.character(bcmvn[max_index, "pK"]))
+
+  # Homotypic Doublet Proportion Estimate
+  annotations <- s@meta.data$seurat_clusters
+  homotypic.prop <- modelHomotypic(annotations)
+  nExp_poi <- round(doublet_rate * nrow(s@meta.data))
+  nExp_poi.adj <- round(nExp_poi * (1 - homotypic.prop))
+
+  # Run DoubletFinder without homotypic adjustment
+  s <- doubletFinder(s, PCs = 1:10, pN = 0.25, pK = optimal_pK,
+                     nExp = nExp_poi, reuse.pANN = FALSE, sct = FALSE)
+  colnames(s@meta.data)[grep("DF.classifications*", colnames(s@meta.data))] <- "DF.unadj"
+
+  # Run DoubletFinder with homotypic adjustment
+  pANN <- colnames(s@meta.data)[grep("^pANN", colnames(s@meta.data))]
+  s <- doubletFinder(s, PCs = 1:10, pN = 0.25, pK = optimal_pK,
+                     nExp = nExp_poi.adj, reuse.pANN = pANN, sct = FALSE)
+  colnames(s@meta.data)[grep("DF.classifications*", colnames(s@meta.data))] <- "DF.adj"
+
+  # Plot unadjusted vs. adjusted doublets in UMAP coordinates. Filenames
+  # use sample_id directly -- every capture in this arm already has a
+  # unique sample identity (no redo-style collision risk the way
+  # monoculture's iMG1/iMG1_redo would have).
+  p1 <- DimPlot_scCustom(s, reduction = "umap", group.by = "DF.unadj",
+                        pt.size = 1, shuffle = TRUE, alpha = 0.6) +
+    ggtitle("Unadjusted")
+  p2 <- DimPlot_scCustom(s, reduction = "umap", group.by = "DF.adj",
+                        pt.size = 1, shuffle = TRUE, alpha = 0.6) +
+    ggtitle("Adjusted for Homotypic Proportion")
+  p <- p1 + p2 + plot_layout(ncol = 2, nrow = 1, guides = "collect")
+
+  ggsave(p, filename = paste0(results_dir, sample_id, "_doublet_umap.png"),
+         units = "in", dpi = 600, height = 5, width = 10, bg = "white")
+
+  return(s)
+}
+
+message2("Running DoubletFinder")
+
+obj <- run_doubletfinder(obj, doublet_rate, sample_id)
+
+# Save this capture's filtered, DoubletFinder-processed matrix + metadata ---
+message2("Saving filtered, DoubletFinder-processed capture")
+
+counts_out <- convert_matrix_type(obj[["RNA"]]$counts, type = "uint32_t")
+write_matrix_dir(mat = counts_out,
+                 dir = paste0(data_out_dir, "bpcells_persample/", sample_id))
+
+saveRDS(obj@meta.data,
+        file = paste0(data_out_dir, "metadata_persample/", sample_id, ".rds"))
