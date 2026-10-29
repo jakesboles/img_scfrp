@@ -36,6 +36,8 @@ pools <- list.dirs("cellranger",
                     recursive = F,
                     full.names = F)
 
+pools <- pools[str_detect(pools, "test", negate = T)]
+
 numbers <- list()
 
 for (pool in pools) {
