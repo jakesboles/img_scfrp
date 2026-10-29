@@ -96,8 +96,7 @@ message2("Making marker plots")
 microglia_markers <- c("AIF1", "CSF1R")
 neuron_markers <- c("RBFOX3", "MAP2", "TUBB3", "SYP", "STMN2")
 
-for (i in c(microglia_markers, neuron_markers, "nCount_RNA", "nFeature_RNA")) {
-
+for (i in c(microglia_markers, neuron_markers, "nCount_RNA", "nFeature_RNA", "TOP2A", "MKI67")) {
   p <- VlnPlot_scCustom(obj,
                         group.by = "annotation_cluster",
                         features = i,
@@ -127,19 +126,11 @@ for (i in c(microglia_markers, neuron_markers, "nCount_RNA", "nFeature_RNA")) {
 # or "Neuron" (add a third category here, e.g. "Doublet"/"Ambiguous", if
 # a cluster doesn't clearly resolve to either -- don't force a bad call
 # into one of the two just to satisfy the stop() guard below).
-cluster_labels <- c()
 
-cluster_ids <- levels(obj$annotation_cluster)
-missing_labels <- setdiff(cluster_ids, names(cluster_labels))
-if (length(missing_labels) > 0) {
-  stop(paste0("cluster_labels is missing an entry for cluster(s): ",
-              paste(missing_labels, collapse = ", "),
-              " -- inspect ", results_dir, "<marker>_vln.png/_umap.png ",
-              "and fill in cluster_labels before continuing."))
-}
-
-obj$cell_type <- factor(cluster_labels[as.character(obj$annotation_cluster)],
-                        levels = unique(cluster_labels))
+obj@meta.data <- obj@meta.data %>% 
+  mutate(cell_type = case_when(annotation_cluster %in% c(1, 2, 4, 5, 7, 10, 11, 13, 15) ~ "Microglia",
+                               annotation_cluster %in% c(3, 6, 8, 9, 14, 18, 22) ~ "Neuron",
+                               annotation_cluster %in% c(12, 16, 17, 19, 20, 21, 23, 24) ~ "NPC"))
 
 p <- DimPlot_scCustom(obj,
                       reduction = "harmony_umap",
