@@ -171,7 +171,7 @@ ggsave(p,
 # interactively, same as monoculture's 02_qc.R/06_qc2.R precedent for a
 # script with an eyeballed QC decision in the middle of it -- inspect the
 # plot above, fill this in, then rerun from here down.
-doublet_clusters <- c()
+doublet_clusters <- c(28, 30, 38, 40)
 
 message2(paste0("Removing clusters: ", paste(doublet_clusters, collapse = ", ")))
 
