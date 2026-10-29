@@ -13,6 +13,6 @@
 
 mkdir -p "/projects/b1169/boles/img_scfrp/cocultures/logs" "/projects/b1169/boles/img_scfrp/cocultures/cellranger"
 
-for pool in JSB134-1 JSB134-2; do
+for pool in JSB127 JSB134-1 JSB134-2 JSB134-3; do
     sbatch "$(dirname "$0")/${pool}_cellranger.sh"
 done
