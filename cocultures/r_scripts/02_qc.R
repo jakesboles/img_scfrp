@@ -105,7 +105,7 @@ juxt_vln <- function(feature, title, xlab, file_suffix){
          units = "in", dpi = 600, height = 5, width = 8)
 }
 
-juxt_vln(nFeature_RNA, "Genes per cell", "# unique genes (x 1000)", "nfeature")
+juxt_vln(nFeature_RNA, "Genes per cell", "# unique genes", "nfeature")
 juxt_vln(nCount_RNA, "UMIs per cell", "# UMI", "ncount")
 juxt_vln(log10GenesPerUMI, "Cell complexity", "log10(# genes) / log10(# UMIs)", "complexity")
 juxt_vln(percent_mito, "Mitochondrial gene content", "% mitochondrial genes", "mito")
@@ -231,7 +231,7 @@ discard_plot <- function(feature, discard_flag, title, xlab, file_suffix){
 }
 
 discard_plot(nFeature_RNA, gene_discard, "Discarded due to low/high genes?",
-            "# unique genes (x 1000)", "nfeature")
+            "# unique genes", "nfeature")
 discard_plot(nCount_RNA, umi_discard, "Discarded due to low/high UMIs?",
             "log10(# UMIs)", "ncount")
 discard_plot(percent_mito, mito_discard, "Discarded due to high mitochondrial gene content?",
